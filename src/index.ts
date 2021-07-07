@@ -1,31 +1,32 @@
-import { CommandoClient, SQLiteProvider } from "discord.js-commando";
-var { token, prefix, supportServerInvite } = require("../config.json");
-import path from "path";
+import { CommandoClient, SQLiteProvider } from 'discord.js-commando';
+import dotenv from 'dotenv';
+import path from 'path';
 import sqlite from 'sqlite';
 
-var bot: CommandoClient = new CommandoClient({
-    commandPrefix: prefix,
-    commandEditableDuration: 10,
-    nonCommandEditable: true,
-    invite: supportServerInvite
+dotenv.config();
+
+const client = new CommandoClient({
+  commandPrefix: '$', // TODO change to ! (figure out how to avoid conflicts with other bots e.g. rhythm bot)
+  owner: process.env.OWNER_ID,
 });
 
-bot.registry
-    .registerGroups([
-        ["bot", "Meta"]
-    ])
-    .registerDefaults()
-    .registerCommandsIn(path.join(__dirname, 'commands'))
-    .registerTypesIn(path.join(__dirname, 'types'));
+client.registry
+  .registerGroups([['bot', 'Meta']])
+  .registerDefaults()
+  .registerCommandsIn(path.join(__dirname, 'commands'))
+  .registerTypesIn(path.join(__dirname, 'types'));
 
-sqlite.open(path.join(__dirname, 'database.sqlite3')).then(database => {
-    bot.setProvider(new SQLiteProvider(database));
-}).catch((e) => {
-    console.error(`Failed to connect to database: ${e}`)
-})
+sqlite
+  .open(path.join(__dirname, 'database.sqlite3'))
+  .then((database) => {
+    client.setProvider(new SQLiteProvider(database));
+  })
+  .catch((e) => {
+    console.error(`Failed to connect to database: ${e}`);
+  });
 
-bot.on("ready", async () => {
-    console.log(`${bot.user.username} is online!`);
-})
+client.on('ready', async () => {
+  console.log(`${client.user.username} is online!`);
+});
 
-bot.login(token).catch(console.log);
+client.login(process.env.DISCORD_BOT_TOKEN).catch(console.error);
