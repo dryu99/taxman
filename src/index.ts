@@ -13,8 +13,7 @@ const client = new CommandoClient({
 client.registry
   .registerGroups([['bot', 'Meta']])
   .registerDefaults()
-  .registerCommandsIn(path.join(__dirname, 'commands'))
-  .registerTypesIn(path.join(__dirname, 'types'));
+  .registerCommandsIn(path.join(__dirname, 'commands'));
 
 sqlite
   .open(path.join(__dirname, 'database.sqlite3'))
@@ -26,7 +25,8 @@ sqlite
   });
 
 client.on('ready', async () => {
-  console.log(`${client.user.username} is online!`);
+  console.log(`Logged in as ${client.user?.tag}! (${client.user?.id})`);
+  client.user?.setActivity('with Commando');
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN).catch(console.error);
