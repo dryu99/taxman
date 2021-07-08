@@ -15,10 +15,14 @@
     "discord.js": "^11.5.1",
     "discord.js-commando": "^0.10.0",
     "dotenv": "^10.0.0",
-    "sqlite": "^3.0.3"
+    "luxon": "^1.27.0",
+    "sqlite": "^3.0.3",
+    "toad-scheduler": "^1.4.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
+    "@types/luxon": "^1.27.1",
     "@types/node": "^12.20.13",
     "nodemon": "^2.0.7",
     "prettier": "^2.3.2",
