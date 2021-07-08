@@ -18,11 +18,14 @@ client.registry
 
 client.setInterval(() => {
   console.log(
-    `ToadScheduler: checking tasks (${new Date(Date.now()).toDateString()})`,
-    taskService.getAll(),
+    `Scheduler: checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
   );
-  const dueTasks = taskService.getDueTasks(Date.now()); // tODO rename lol
-  console.log('ToadScheduler: due tasks', dueTasks);
+
+  // TODO rename lol
+  // TODO determine if this doesn't work with different timezones
+  const dueTasks = taskService.getDueTasks(Date.now());
+  console.log('\tall tasks', taskService.getAll());
+  console.log('\tdue tasks', dueTasks);
   // TODO have to somehow use discord client object here to send message to channel
   //      message should
   //        - specify task that's due
@@ -33,7 +36,7 @@ client.setInterval(() => {
     client.channels.fetch(dueTask.channelID).then((channel) => {
       if (channel.isText()) {
         channel.send(`Task is due: ${dueTask.name}. Are you doing it?`);
-        // TODO finish implementation
+        dueTask.isChecked = true; // TODO use updateTask function instead
       }
     });
   }

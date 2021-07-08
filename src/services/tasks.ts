@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface Task extends NewTask {
   id: string;
+  isChecked: boolean;
   // id: string;
   // name: string;
   // createdAt: number;
@@ -28,12 +29,15 @@ const getAll = (): Task[] => {
 };
 
 const getDueTasks = (currentDate: number): Task[] => {
-  return tasks.filter((task) => currentDate > task.scheduleDate);
+  return tasks.filter(
+    (task) => currentDate > task.scheduleDate && !task.isChecked,
+  );
 };
 
 const add = (newTask: NewTask): Task => {
   const task = {
     id: uuidv4(),
+    isChecked: false,
     ...newTask,
   };
 
