@@ -2,7 +2,7 @@ import { CommandoClient, SQLiteProvider } from 'discord.js-commando';
 import dotenv from 'dotenv';
 import path from 'path';
 import sqlite from 'sqlite';
-import taskScheduler from './lib/task-scheduler';
+import taskService from './services/tasks';
 
 dotenv.config();
 
@@ -16,16 +16,37 @@ client.registry
   .registerDefaults()
   .registerCommandsIn(path.join(__dirname, 'commands'));
 
-taskScheduler.start();
+client.setInterval(() => {
+  console.log(
+    `ToadScheduler: checking tasks (${new Date(Date.now()).toDateString()})`,
+    taskService.getAll(),
+  );
+  const dueTasks = taskService.getDueTasks(Date.now()); // tODO rename lol
+  console.log('ToadScheduler: due tasks', dueTasks);
+  // TODO have to somehow use discord client object here to send message to channel
+  //      message should
+  //        - specify task that's due
+  //        - prompt author and partner to react
+  //        - send another message based on reacts (e.g. fail or success)
 
-sqlite
-  .open(path.join(__dirname, 'database.sqlite3'))
-  .then((database) => {
-    client.setProvider(new SQLiteProvider(database));
-  })
-  .catch((e) => {
-    console.error(`Failed to connect to database: ${e}`);
-  });
+  for (const dueTask of dueTasks) {
+    client.channels.fetch(dueTask.channelID).then((channel) => {
+      if (channel.isText()) {
+        channel.send(`Task is due: ${dueTask.name}. Are you doing it?`);
+        // TODO finish implementation
+      }
+    });
+  }
+}, 10 * 1000); // TODO this num should be 1 min
+
+// sqlite
+//   .open(path.join(__dirname, 'database.sqlite3'))
+//   .then((database) => {
+//     client.setProvider(new SQLiteProvider(database));
+//   })
+//   .catch((e) => {
+//     console.error(`Failed to connect to database: ${e}`);
+//   });
 
 client.on('ready', async () => {
   console.log(`Logged in as ${client.user?.tag}! (${client.user?.id})`);

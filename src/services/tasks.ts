@@ -18,6 +18,7 @@ export interface NewTask {
   cost: number;
   authorID: string; // user ids
   partnerID: string;
+  channelID: string;
 }
 
 const tasks: Task[] = [];

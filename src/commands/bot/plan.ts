@@ -1,4 +1,4 @@
-import { Command, CommandoClient, CommandMessage } from 'discord.js-commando';
+import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { DateTime } from 'luxon';
 import taskService from '../../services/tasks';
 import userService from '../../services/users';
@@ -64,7 +64,7 @@ module.exports = class PlanCommand extends Command {
   // - penalty amount ($)
   // - partner (use discord @)
 
-  async run(msg: CommandMessage, args: Record<PlanCommandArgs, string>) {
+  async run(msg: CommandoMessage, args: Record<PlanCommandArgs, string>) {
     const { taskName, date, time, cost } = args;
 
     // add user
@@ -83,6 +83,7 @@ module.exports = class PlanCommand extends Command {
     taskService.add({
       authorID: msg.author.id,
       partnerID: 'test',
+      channelID: msg.channel.id,
       cost: Number(cost),
       name: taskName,
       createdAt: msg.createdAt.getTime(),
