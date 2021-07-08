@@ -14,7 +14,7 @@ export interface Task extends NewTask {
 export interface NewTask {
   name: string;
   createdAt: number;
-  scheduleDate: number;
+  scheduleDate: number; // TODO make better name (since its a number)
   cost: number;
   authorID: string; // user ids
   partnerID: string;
@@ -24,6 +24,10 @@ const tasks: Task[] = [];
 
 const getAll = (): Task[] => {
   return tasks;
+};
+
+const getDueTasks = (currentDate: number): Task[] => {
+  return tasks.filter((task) => currentDate > task.scheduleDate);
 };
 
 const add = (newTask: NewTask): Task => {
@@ -38,5 +42,6 @@ const add = (newTask: NewTask): Task => {
 
 export default {
   getAll,
+  getDueTasks,
   add,
 };

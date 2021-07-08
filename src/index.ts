@@ -2,6 +2,7 @@ import { CommandoClient, SQLiteProvider } from 'discord.js-commando';
 import dotenv from 'dotenv';
 import path from 'path';
 import sqlite from 'sqlite';
+import taskScheduler from './lib/task-scheduler';
 
 dotenv.config();
 
@@ -14,6 +15,8 @@ client.registry
   .registerGroups([['bot', 'Meta']])
   .registerDefaults()
   .registerCommandsIn(path.join(__dirname, 'commands'));
+
+taskScheduler.start();
 
 sqlite
   .open(path.join(__dirname, 'database.sqlite3'))
