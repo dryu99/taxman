@@ -30,7 +30,7 @@ export default class Bot {
   public start(): Promise<string | void> {
     this.client.setInterval(() => {
       this.checkTasks();
-    }, 15 * 1000);
+    }, 5 * 1000);
 
     return this.client
       .login(process.env.DISCORD_BOT_TOKEN)
@@ -39,16 +39,14 @@ export default class Bot {
 
   private async checkTasks(): Promise<void> {
     console.log(
-      `Scheduler: checking tasks (${new Date(
-        Date.now(),
-      ).toLocaleTimeString()})`,
+      `Bot: checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
     );
 
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
     const dueTasks = taskService.getDueTasks(Date.now());
-    console.log('\tall tasks', taskService.getAll());
-    console.log('\tdue tasks', dueTasks);
+    // console.log('\tall tasks', taskService.getAll());
+    // console.log('\tdue tasks', dueTasks);
 
     for (const dueTask of dueTasks) {
       dueTask.isChecked = true; // TODO use updateTask function instead
