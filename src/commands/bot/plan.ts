@@ -1,9 +1,10 @@
+import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { DateTime } from 'luxon';
 import taskService from '../../services/tasks';
 import userService from '../../services/users';
 
-const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost>';
+const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
 
 enum PlanCommandArgs {
   TASK_NAME = 'taskName',
@@ -12,6 +13,7 @@ enum PlanCommandArgs {
   TIME_TYPE = 'timeType',
   TIME_ZONE = 'timeZone',
   COST = 'cost',
+  PARTNER = 'partner',
 }
 
 module.exports = class PlanCommand extends Command {
@@ -53,6 +55,11 @@ module.exports = class PlanCommand extends Command {
           prompt,
           type: 'string',
         },
+        {
+          key: PlanCommandArgs.PARTNER,
+          prompt,
+          type: 'member',
+        },
       ],
     });
   }
@@ -64,6 +71,7 @@ module.exports = class PlanCommand extends Command {
   // - penalty amount ($)
   // - partner (use discord @)
 
+  // TODO handle input validation
   async run(msg: CommandoMessage, args: Record<PlanCommandArgs, string>) {
     const { taskName, date, time, cost } = args;
 
@@ -77,12 +85,16 @@ module.exports = class PlanCommand extends Command {
       zone: 'America/Los_Angeles', // TODO change to use user input
     });
 
-    console.log('date', scheduleDate.toString());
+    // get partner
+    const taggedUser = msg.mentions.users.first();
+    if (!taggedUser) {
+      return msg.reply('No partner user was mentioned!');
+    }
 
     // add task
     taskService.add({
       authorID: msg.author.id,
-      partnerID: 'test',
+      partnerID: taggedUser.id,
       channelID: msg.channel.id,
       cost: Number(cost),
       name: taskName,
@@ -93,6 +105,6 @@ module.exports = class PlanCommand extends Command {
     console.log('users', userService.getAll());
     console.log('tasks', taskService.getAll());
 
-    return msg.reply(`success`);
+    return msg.reply('Task scheduled successfully!');
   }
 };
