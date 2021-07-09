@@ -2,7 +2,7 @@ import { MessageEmbed, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import taskService, { Task } from '../services/tasks';
-import TaskCheckInMessager from './task-checker';
+import TaskCheckInMessenger from './TaskCheckInMessenger';
 
 export default class Bot {
   private client: CommandoClient;
@@ -56,7 +56,7 @@ export default class Bot {
 
       if (!channel.isText()) continue; // TODO sentry
 
-      const taskCheckInMessager = new TaskCheckInMessager(
+      const taskCheckInMessager = new TaskCheckInMessenger(
         dueTask,
         this.client,
         channel as TextChannel,

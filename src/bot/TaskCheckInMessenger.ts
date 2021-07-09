@@ -2,10 +2,11 @@ import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import { Task } from '../services/tasks';
 
-export default class TaskChecker {
+export default class TaskCheckInMessenger {
   private task: Task;
   private channel: TextChannel;
   private client: CommandoClient;
+  // private state: TaskChec;
 
   constructor(task: Task, client: CommandoClient, channel: TextChannel) {
     this.task = task;
@@ -13,7 +14,10 @@ export default class TaskChecker {
     this.channel = channel;
   }
 
-  // TODO how to make this look better
+  // TODO use state machine
+  //   - add field called 'state' (enum)
+  //   - use while loop and switch statement in prompt()
+  //   - change state in each event (e.g. promptCheckInWithAuthor: success -> CONFIRM_PARTNER, fail -> FAIL)
   public async prompt() {
     const taskCheckInReaction = await this.promptCheckInWithAuthor();
     if (!taskCheckInReaction) return; // TODO sentry

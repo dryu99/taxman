@@ -2,7 +2,7 @@ import { MessageEmbed } from 'discord.js';
 import { CommandoClient, SQLiteProvider } from 'discord.js-commando';
 import dotenv from 'dotenv';
 import sqlite from 'sqlite';
-import Bot from './bot/bot';
+import Bot from './bot/Bot';
 
 dotenv.config();
 
