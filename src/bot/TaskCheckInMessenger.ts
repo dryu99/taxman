@@ -2,16 +2,25 @@ import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import { Task } from '../services/tasks';
 
+enum MessageState {
+  IDLE = 'idle',
+  AUTHOR_CHECK_IN = 'author_check_in',
+  PARTNER_CONFIRM = 'partner_confirm',
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+}
+
 export default class TaskCheckInMessenger {
   private task: Task;
   private channel: TextChannel;
   private client: CommandoClient;
-  // private state: TaskChec;
+  private state: MessageState;
 
   constructor(task: Task, client: CommandoClient, channel: TextChannel) {
     this.task = task;
     this.client = client;
     this.channel = channel;
+    this.state = MessageState.IDLE;
   }
 
   // TODO use state machine
@@ -19,21 +28,47 @@ export default class TaskCheckInMessenger {
   //   - use while loop and switch statement in prompt()
   //   - change state in each event (e.g. promptCheckInWithAuthor: success -> CONFIRM_PARTNER, fail -> FAIL)
   public async prompt() {
-    const taskCheckInReaction = await this.promptCheckInWithAuthor();
-    if (!taskCheckInReaction) return; // TODO sentry
+    this.state = MessageState.AUTHOR_CHECK_IN; // start state
 
-    if (taskCheckInReaction.emoji.name === '👍') {
-      const partnerConfirmReaction = await this.promptConfirmWithPartner();
-      if (!partnerConfirmReaction) return; // TODO sentry
-
-      if (partnerConfirmReaction.emoji.name === '👍') {
-        this.sendCheckInSuccess();
-      } else {
-        this.sendCheckInFail();
+    while (this.state !== MessageState.IDLE) {
+      switch (this.state) {
+        case MessageState.AUTHOR_CHECK_IN: {
+          const reaction = await this.promptCheckInWithAuthor();
+          this.state =
+            reaction?.emoji.name === '👍'
+              ? MessageState.PARTNER_CONFIRM
+              : MessageState.FAILURE;
+          break;
+        }
+        case MessageState.PARTNER_CONFIRM: {
+          const reaction = await this.promptConfirmWithPartner();
+          this.state =
+            reaction?.emoji.name === '👍'
+              ? MessageState.SUCCESS
+              : MessageState.FAILURE;
+          break;
+        }
+        case MessageState.SUCCESS: {
+          this.sendCheckInSuccess();
+          this.state = MessageState.IDLE;
+          break;
+        }
+        case MessageState.FAILURE: {
+          this.sendCheckInFail();
+          this.state = MessageState.IDLE;
+          break;
+        }
+        default: {
+          console.error(
+            'unknown taskcheckinmessengerstate received',
+            this.state,
+          );
+          // TODO sentry
+        }
       }
-    } else {
-      this.sendCheckInFail();
     }
+
+    console.log('exiting taskcheckinmessenger message loop');
   }
 
   private async promptCheckInWithAuthor(): Promise<
@@ -43,7 +78,7 @@ export default class TaskCheckInMessenger {
       .setColor('#0099ff')
       .setTitle('TASK CHECK IN')
       .setDescription(
-        `<@${this.task.authorID}> Your task is due: ${this.task.name}. Are you doing it? Remember to provide photographic proof!`,
+        `<@${this.task.authorID}> Your task is due: ${this.task.name}. Have you completed it? Remember to provide photographic proof for your accountability partner!`,
       );
 
     const msg = await this.channel.send(embed);
