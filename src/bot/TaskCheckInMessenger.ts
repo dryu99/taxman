@@ -5,7 +5,9 @@ import { Task } from '../services/tasks';
 enum MessageState {
   IDLE = 'idle',
   AUTHOR_CHECK_IN = 'author_check_in',
+  AUTHOR_CHECK_IN_TIMEOUT = 'author_check_in_timeout',
   PARTNER_CONFIRM = 'partner_confirm',
+  PARTNER_CONFIRM_TIMEOUT = 'partner_confirm_timeout',
   SUCCESS = 'success',
   FAILURE = 'failure',
 }
@@ -20,65 +22,63 @@ export default class TaskCheckInMessenger {
     this.task = task;
     this.client = client;
     this.channel = channel;
-    this.state = MessageState.IDLE;
+    this.state = MessageState.AUTHOR_CHECK_IN; // start state
   }
 
-  // TODO use state machine
-  //   - add field called 'state' (enum)
-  //   - use while loop and switch statement in prompt()
-  //   - change state in each event (e.g. promptCheckInWithAuthor: success -> CONFIRM_PARTNER, fail -> FAIL)
   public async prompt() {
-    this.state = MessageState.AUTHOR_CHECK_IN; // start state
-
-    while (this.state !== MessageState.IDLE) {
+    while (true) {
       switch (this.state) {
         case MessageState.AUTHOR_CHECK_IN: {
-          const reaction = await this.promptCheckInWithAuthor();
-          this.state =
-            reaction?.emoji.name === '👍'
-              ? MessageState.PARTNER_CONFIRM
-              : MessageState.FAILURE;
+          await this.promptCheckInWithAuthor();
+          break;
+        }
+        case MessageState.AUTHOR_CHECK_IN_TIMEOUT: {
+          await this.sendCheckInFail();
           break;
         }
         case MessageState.PARTNER_CONFIRM: {
-          const reaction = await this.promptConfirmWithPartner();
-          this.state =
-            reaction?.emoji.name === '👍'
-              ? MessageState.SUCCESS
-              : MessageState.FAILURE;
+          await this.promptConfirmWithPartner();
+          break;
+        }
+        case MessageState.PARTNER_CONFIRM_TIMEOUT: {
+          await this.sendCheckInFail();
           break;
         }
         case MessageState.SUCCESS: {
-          this.sendCheckInSuccess();
-          this.state = MessageState.IDLE;
+          await this.sendCheckInSuccess();
           break;
         }
         case MessageState.FAILURE: {
-          this.sendCheckInFail();
-          this.state = MessageState.IDLE;
+          await this.sendCheckInFail();
           break;
+        }
+        case MessageState.IDLE: {
+          console.log('exiting message loop');
+          return; // exit message loop
         }
         default: {
           console.error(
             'unknown taskcheckinmessengerstate received',
             this.state,
           );
+          return; // exit message loop
           // TODO sentry
         }
       }
     }
-
-    console.log('exiting taskcheckinmessenger message loop');
   }
 
-  private async promptCheckInWithAuthor(): Promise<
-    MessageReaction | undefined
-  > {
+  private async promptCheckInWithAuthor() {
+    const reactionTimeLimitMinutes = 0.1;
+
     const embed = new MessageEmbed()
-      .setColor('#0099ff')
+      .setColor('#5bb0e4')
       .setTitle('TASK CHECK IN')
       .setDescription(
-        `<@${this.task.authorID}> Your task is due: ${this.task.name}. Have you completed it? Remember to provide photographic proof for your accountability partner!`,
+        `<@${this.task.authorID}> Your task is due: ${this.task.name}. 
+        Have you completed it? 
+        Remember to provide photographic proof for your accountability partner! 
+        You have ${reactionTimeLimitMinutes} minutes to respond.`,
       );
 
     const msg = await this.channel.send(embed);
@@ -91,24 +91,32 @@ export default class TaskCheckInMessenger {
       .catch((e) => console.error('One of the emojis failed to react:', e));
 
     // handle author reaction
-    const collectedReactions = await msg.awaitReactions(
-      (reaction, user) =>
-        ['👍', '👎'].includes(reaction.emoji.name) &&
-        user.id === this.task.authorID,
-      {
-        max: 1,
-        time: 15 * 60 * 1000, // 15 min
-        errors: ['time'],
-      },
-    );
+    try {
+      const collectedReactions = await msg.awaitReactions(
+        (reaction, user) =>
+          ['👍', '👎'].includes(reaction.emoji.name) &&
+          user.id === this.task.authorID,
+        {
+          max: 1,
+          time: reactionTimeLimitMinutes * 60 * 1000,
+          errors: ['time'],
+        },
+      );
 
-    const reaction = collectedReactions.first();
-    return reaction;
+      const reaction = collectedReactions.first();
+
+      // update message state
+      this.state =
+        reaction?.emoji.name === '👍'
+          ? MessageState.PARTNER_CONFIRM
+          : MessageState.FAILURE;
+    } catch (e) {
+      // TODO may need to handle other errors here too
+      this.state = MessageState.AUTHOR_CHECK_IN_TIMEOUT;
+    }
   }
 
-  private async promptConfirmWithPartner(): Promise<
-    MessageReaction | undefined
-  > {
+  private async promptConfirmWithPartner() {
     const msg = await this.channel.send(
       `<@${this.task.partnerID}> Please confirm that <@${this.task.authorID}> has completed their task.`,
     );
@@ -118,30 +126,41 @@ export default class TaskCheckInMessenger {
       .then(() => msg.react('👎'))
       .catch((e) => console.error('One of the emojis failed to react:', e));
 
-    const collectedReactions = await msg.awaitReactions(
-      (reaction, user) =>
-        ['👍', '👎'].includes(reaction.emoji.name) &&
-        user.id === this.task.partnerID,
-      {
-        max: 1,
-        time: 15 * 60 * 1000, // 15 min
-        errors: ['time'],
-      },
-    );
+    try {
+      const collectedReactions = await msg.awaitReactions(
+        (reaction, user) =>
+          ['👍', '👎'].includes(reaction.emoji.name) &&
+          user.id === this.task.partnerID,
+        {
+          max: 1,
+          time: 15 * 60 * 1000, // 15 min
+          errors: ['time'],
+        },
+      );
 
-    const reaction = collectedReactions.first();
-    return reaction;
+      const reaction = collectedReactions.first();
+
+      // update message state
+      this.state =
+        reaction?.emoji.name === '👍'
+          ? MessageState.SUCCESS
+          : MessageState.FAILURE;
+    } catch (e) {
+      this.state = MessageState.PARTNER_CONFIRM_TIMEOUT;
+    }
   }
 
   private async sendCheckInSuccess() {
     const msg = await this.channel.send(
       `<@${this.task.authorID}> Great job, you have evaded the taxman!`,
     );
+    this.state = MessageState.IDLE;
   }
 
   private async sendCheckInFail() {
     const msg = await this.channel.send(
       `<@${this.task.authorID}> The taxman got you... Your account will be charged in the following days.`,
     );
+    this.state = MessageState.IDLE;
   }
 }
