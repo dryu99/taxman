@@ -3,7 +3,7 @@ import { CommandoClient } from 'discord.js-commando';
 import { Task, TaskStatus } from '../models/TaskModel';
 import { formatMention } from './utils';
 import theme from './theme';
-import tasks from '../services/tasks';
+import taskService from '../services/task-service';
 
 enum MessageState {
   IDLE = 'idle',
@@ -220,7 +220,7 @@ export default class TaskCheckInMessenger {
     }
 
     // update task status
-    await tasks.update(this.task.id, { status: TaskStatus.COMPLETED });
+    await taskService.update(this.task.id, { status: TaskStatus.COMPLETED });
 
     // TODO 'your next task is...?' or 'create a new task!'
     const msg = await this.channel.send(embed);
@@ -241,7 +241,7 @@ export default class TaskCheckInMessenger {
       .addFields({ name: 'Reason', value: reason });
 
     // update task status
-    await tasks.update(this.task.id, { status: TaskStatus.FAILED });
+    await taskService.update(this.task.id, { status: TaskStatus.FAILED });
 
     const msg = await this.channel.send(embed);
     return MessageState.IDLE;

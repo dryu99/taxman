@@ -2,7 +2,7 @@ import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { Task, TaskStatus } from '../../models/TaskModel';
-import taskService from '../../services/tasks';
+import taskService from '../../services/task-service';
 import { formatMention } from '../../bot/utils';
 import { scheduleCommandName } from './schedule';
 

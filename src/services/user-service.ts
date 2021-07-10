@@ -30,8 +30,10 @@ const add = (newUser: NewUser): User => {
   return user;
 };
 
-export default {
+const userService = {
   getAll,
   contains,
   add,
 };
+
+export default userService;

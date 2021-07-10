@@ -1,7 +1,7 @@
 import { TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
-import taskService from '../services/tasks';
+import taskService from '../services/task-service';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
 
 export default class Bot {

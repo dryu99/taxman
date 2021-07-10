@@ -1,8 +1,8 @@
 import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { DateTime } from 'luxon';
-import taskService from '../../services/tasks';
-import userService from '../../services/users';
+import taskService from '../../services/task-service';
+import userService from '../../services/user-service';
 
 enum ScheduleCommandArgs {
   TASK_NAME = 'taskName',

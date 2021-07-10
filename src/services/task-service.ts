@@ -43,10 +43,12 @@ const update = async (taskID: string, newProps: Partial<Task>) => {
   await TaskModel.updateOne({ _id: taskID }, { $set: newProps });
 };
 
-export default {
+const taskService = {
   getAll,
   getDueTasks,
   add,
   getAuthorTasks,
   update,
 };
+
+export default taskService;
