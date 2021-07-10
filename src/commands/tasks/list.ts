@@ -56,11 +56,13 @@ module.exports = class ListCommand extends Command {
       .setColor(theme.colors.primary.main)
       .setTitle(title); // TODO should change based on flag (e.g. All vs Completed vs Upcoming)
 
+    // TODO find better date format (and apply elsewhere make utils fn or sth)
+    // TODO only show DUE @ text for upcoming tasks (ow just use 'Due Date:' text)
     if (tasks.length > 0) {
-      const fields = tasks.map((task) => ({
-        name: task.name,
+      const fields = tasks.map((task, i) => ({
+        name: `\`${i + 1}.\`  ${task.name}`,
         value: `
-          Due Date: ${task.dueDate.toLocaleString()}
+          **DUE @ ${task.dueDate.toLocaleString()}**
           Money at stake: $${task.cost}
           Accountability Partner: ${formatMention(task.partnerID)}
         `,
