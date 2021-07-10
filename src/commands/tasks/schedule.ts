@@ -6,7 +6,7 @@ import userService from '../../services/users';
 
 const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
 
-enum PlanCommandArgs {
+enum ScheduleCommandArgs {
   TASK_NAME = 'taskName',
   DATE = 'date',
   TIME = 'time',
@@ -17,27 +17,27 @@ enum PlanCommandArgs {
 }
 
 // TODO rename this to Schedule
-module.exports = class PlanCommand extends Command {
+module.exports = class ScheduleCommand extends Command {
   constructor(client: CommandoClient) {
     super(client, {
-      name: 'plan',
-      aliases: ['plan'],
-      group: 'bot',
-      memberName: 'plan',
+      name: 'schedule',
+      aliases: ['schedule'],
+      group: 'tasks',
+      memberName: 'schedule',
       description: 'Schedule a new task.',
       args: [
         {
-          key: PlanCommandArgs.TASK_NAME,
+          key: ScheduleCommandArgs.TASK_NAME,
           prompt,
           type: 'string',
         },
         {
-          key: PlanCommandArgs.DATE,
+          key: ScheduleCommandArgs.DATE,
           prompt,
           type: 'string',
         },
         {
-          key: PlanCommandArgs.TIME,
+          key: ScheduleCommandArgs.TIME,
           prompt,
           type: 'string',
         },
@@ -52,12 +52,12 @@ module.exports = class PlanCommand extends Command {
         //   type: 'string',
         // },
         {
-          key: PlanCommandArgs.COST,
+          key: ScheduleCommandArgs.COST,
           prompt,
           type: 'string',
         },
         {
-          key: PlanCommandArgs.PARTNER,
+          key: ScheduleCommandArgs.PARTNER,
           prompt,
           type: 'member',
         },
@@ -73,7 +73,7 @@ module.exports = class PlanCommand extends Command {
   // - partner (use discord @)
 
   // TODO handle input validation
-  async run(msg: CommandoMessage, args: Record<PlanCommandArgs, string>) {
+  async run(msg: CommandoMessage, args: Record<ScheduleCommandArgs, string>) {
     const { taskName, date, time, cost } = args;
 
     // add user

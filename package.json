@@ -4,10 +4,10 @@
   "description": "He's the taxman yeah yeah",
   "main": "dist/index.js",
   "scripts": {
-    "start": "npm run debug",
-    "dev": "nodemon -e js,ts --watch src --exec \"npm run build:ts && npm run start:app\"",
-    "build:ts": "tsc",
-    "start:app": "node dist/index.js"
+    "start": "node dist/index.js",
+    "dev": "nodemon -e js,ts --watch src --exec \"yarn build && yarn start\"",
+    "build": "rm -rf ./dist/ && tsc",
+    "debug": "yarn debug"
   },
   "author": "abyssal512",
   "license": "MIT",

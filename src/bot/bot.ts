@@ -3,7 +3,6 @@ import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import taskService from '../services/tasks';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
-// import mongoose from 'mongoose';
 
 export default class Bot {
   private client: CommandoClient;
@@ -16,7 +15,7 @@ export default class Bot {
 
     // register commands
     this.client.registry
-      .registerGroups([['bot', 'Meta']])
+      .registerGroups([['tasks', 'Task related commands']])
       .registerDefaults()
       .registerCommandsIn(path.join(__dirname, '../commands'));
 
