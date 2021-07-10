@@ -5,10 +5,12 @@ export interface NewTask {
   name: string;
   dueDate: Date;
   cost: number; // TODO rename to payout?
-  authorID: string;
+  authorID: string; // TODO consider changing to userID
   partnerID: string;
   channelID: string;
   // TODO guildID
+  // frequency
+  // reminderMinutes
 }
 
 export interface Task extends NewTask {

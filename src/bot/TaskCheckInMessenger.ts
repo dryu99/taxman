@@ -1,7 +1,7 @@
 import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import { Task } from '../models/TaskModel';
-import { getMentionString } from '../utils/utils';
+import { formatMention } from './utils';
 import theme from './theme';
 
 enum MessageState {
@@ -92,7 +92,7 @@ export default class TaskCheckInMessenger {
       .setColor(theme.colors.primary.main)
       .setTitle(`Task Check-In`)
       .setDescription(
-        `${getMentionString(this.task.authorID)} Your task is due!
+        `${formatMention(this.task.authorID)} Your task is due!
         Have you completed it?
         Remember to provide photographic proof for your accountability partner! 
         You have ${reactionTimeLimitMinutes} minutes to respond.`,
@@ -106,7 +106,7 @@ export default class TaskCheckInMessenger {
         },
         {
           name: 'Accountability Partner',
-          value: getMentionString(this.task.partnerID),
+          value: formatMention(this.task.partnerID),
         },
         {
           name: 'Money at stake',
@@ -151,9 +151,9 @@ export default class TaskCheckInMessenger {
       .setColor(theme.colors.primary.main)
       .setTitle(`Task Check-In: Partner Confirmation`)
       .setDescription(
-        `${getMentionString(
+        `${formatMention(
           this.task.partnerID,
-        )} Please confirm that ${getMentionString(
+        )} Please confirm that ${formatMention(
           this.task.authorID,
         )} has completed their task. 
         You have ${reactionTimeLimitMinutes} minutes to respond.`,
@@ -166,7 +166,7 @@ export default class TaskCheckInMessenger {
         },
         {
           name: 'Task Author',
-          value: getMentionString(this.task.authorID),
+          value: formatMention(this.task.authorID),
         },
         {
           name: 'Money at stake',
@@ -209,7 +209,7 @@ export default class TaskCheckInMessenger {
       .setColor(theme.colors.success)
       .setTitle(`Task Check-In: Success`)
       .setDescription(
-        `${getMentionString(
+        `${formatMention(
           this.task.authorID,
         )} Great job, you have evaded the taxman!`,
       );
@@ -227,7 +227,7 @@ export default class TaskCheckInMessenger {
       .setColor(theme.colors.error)
       .setTitle(`Task Check-In: Failure`)
       .setDescription(
-        `${getMentionString(
+        `${formatMention(
           this.task.authorID,
         )} The taxman got you... Your stripe account will be charged $${
           this.task.cost

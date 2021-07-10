@@ -3,7 +3,7 @@ import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { Task } from '../../models/TaskModel';
 import taskService from '../../services/tasks';
-import { getMentionString as formatMention } from '../../utils/utils';
+import { formatMention } from '../../bot/utils';
 
 enum ListCommandArgs {
   OPTION = 'option',
