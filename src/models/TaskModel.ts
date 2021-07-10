@@ -4,7 +4,7 @@ mongoose.set('useFindAndModify', false);
 export interface NewTask {
   name: string;
   dueDate: Date;
-  cost: number;
+  cost: number; // TODO rename to payout?
   authorID: string;
   partnerID: string;
   channelID: string;

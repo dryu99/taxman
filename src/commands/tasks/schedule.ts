@@ -4,8 +4,6 @@ import { DateTime } from 'luxon';
 import taskService from '../../services/tasks';
 import userService from '../../services/users';
 
-const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
-
 enum ScheduleCommandArgs {
   TASK_NAME = 'taskName',
   DATE = 'date',
@@ -15,6 +13,8 @@ enum ScheduleCommandArgs {
   COST = 'cost',
   PARTNER = 'partner',
 }
+
+const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
 
 // TODO rename this to New?
 module.exports = class ScheduleCommand extends Command {

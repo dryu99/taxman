@@ -1,6 +1,6 @@
 import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
-import { Task } from '../models/Task';
+import { Task } from '../models/TaskModel';
 import { getMentionString } from '../utils/utils';
 import theme from './theme';
 
