@@ -10,6 +10,6 @@
     "outDir": "dist",
     "importHelpers": true
   },
-  "include": ["src/**/*.ts", "src/types/.exists.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }
