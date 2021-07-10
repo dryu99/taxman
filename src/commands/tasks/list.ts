@@ -53,10 +53,10 @@ class ListCommand extends Command {
     // TODO improve typing lmao
     const title =
       option === 'all'
-        ? 'All Tasks'
+        ? 'Viewing All Tasks'
         : option === 'past'
-        ? 'Past Tasks'
-        : 'Upcoming Tasks';
+        ? 'Viewing Past Tasks'
+        : 'Viewing Upcoming Tasks';
 
     const embed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
