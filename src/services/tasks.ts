@@ -5,6 +5,14 @@ const getAll = async (): Promise<Task[]> => {
   return tasks.map((task) => task.toJSON());
 };
 
+const getAuthorTasks = async (
+  authorID: string,
+  filter: Partial<Task>,
+): Promise<Task[]> => {
+  const tasks = await TaskModel.find({ authorID, ...filter });
+  return tasks;
+};
+
 // TODO should prob think of some caching mechanism cause this gets fired so frequently lol
 const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   const dueTasks = await TaskModel.find({
@@ -42,4 +50,5 @@ export default {
   getDueTasks,
   add,
   check,
+  getAuthorTasks,
 };

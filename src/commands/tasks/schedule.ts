@@ -16,7 +16,7 @@ enum ScheduleCommandArgs {
   PARTNER = 'partner',
 }
 
-// TODO rename this to Schedule
+// TODO rename this to New?
 module.exports = class ScheduleCommand extends Command {
   constructor(client: CommandoClient) {
     super(client, {
