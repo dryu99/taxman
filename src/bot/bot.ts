@@ -3,6 +3,7 @@ import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import taskService, { Task } from '../services/tasks';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
+// import mongoose from 'mongoose';
 
 export default class Bot {
   private client: CommandoClient;
@@ -13,6 +14,7 @@ export default class Bot {
       owner: process.env.OWNER_ID,
     });
 
+    // register commands
     this.client.registry
       .registerGroups([['bot', 'Meta']])
       .registerDefaults()
@@ -27,7 +29,7 @@ export default class Bot {
     });
   }
 
-  public start(): Promise<string | void> {
+  public async start(): Promise<string | void> {
     this.client.setInterval(() => {
       this.checkTasks();
     }, 5 * 1000);

@@ -1,15 +1,29 @@
 import { MessageEmbed } from 'discord.js';
-import { CommandoClient, SQLiteProvider } from 'discord.js-commando';
+import { CommandoClient } from 'discord.js-commando';
 import dotenv from 'dotenv';
-import sqlite from 'sqlite';
 import Bot from './bot/Bot';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
-// start bot
-const bot = new Bot();
-bot.start();
+const main = async () => {
+  // Setup db
+  try {
+    await mongoose.connect(process.env.MONGODB_URI as string, {
+      // TODO remove typescript force
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-// #963884 dark purp
-// #c17ab6 light purp
-// #5bb0e4 light blue
+    console.log('connected to MongoDB');
+  } catch (e) {
+    console.error('error connecting to MongoDB:', e.message);
+  }
+
+  // Start bot
+  // We start after db setup b/c bot queries db right away in interval handler
+  const bot = new Bot();
+  bot.start();
+};
+
+main();
