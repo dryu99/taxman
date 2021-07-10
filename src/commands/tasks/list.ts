@@ -1,21 +1,24 @@
 import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
-import { Task } from '../../models/TaskModel';
+import { Task, TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/tasks';
 import { formatMention } from '../../bot/utils';
+import { scheduleCommandName } from './schedule';
 
 enum ListCommandArgs {
   OPTION = 'option',
 }
 
-module.exports = class ListCommand extends Command {
+export const listCommandName = 'list';
+
+class ListCommand extends Command {
   constructor(client: CommandoClient) {
     super(client, {
-      name: 'list',
-      aliases: ['list'],
+      name: listCommandName,
+      aliases: [listCommandName],
       group: 'tasks',
-      memberName: 'list',
+      memberName: listCommandName,
       description: 'View your upcoming tasks.', // TODO allow users to pass in 'complete'/'pending' args to filter list
       args: [
         {
@@ -39,7 +42,10 @@ module.exports = class ListCommand extends Command {
     // Fetch author tasks
     const taskFilter: Partial<Task> = {};
     if (option !== 'all') {
-      taskFilter.isChecked = option === 'past';
+      taskFilter.status =
+        option === 'past' ? TaskStatus.COMPLETED : TaskStatus.PENDING;
+      // TODO this isn't correct, as FAILED + CANCELLED tasks are also in the past.
+      //      have to do more complex filter
     }
     const tasks = await taskService.getAuthorTasks(msg.author.id, taskFilter);
 
@@ -63,6 +69,7 @@ module.exports = class ListCommand extends Command {
         name: `\`${i + 1}.\`  ${task.name}`,
         value: `
           **DUE @ ${task.dueDate.toLocaleString()}**
+          ID: \`${task.id}\`
           Money at stake: $${task.cost}
           Accountability Partner: ${formatMention(task.partnerID)}
         `,
@@ -71,10 +78,12 @@ module.exports = class ListCommand extends Command {
       embed.addFields(fields);
     } else {
       embed.setDescription(
-        'You have no upcoming tasks! Use the `$schedule` command to schedule a new task',
+        `You have no upcoming tasks! Use the $\`${scheduleCommandName}\` command to schedule a new task`,
       );
     }
 
     return msg.reply(embed);
   }
-};
+}
+
+export default ListCommand;

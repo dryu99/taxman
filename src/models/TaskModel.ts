@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
 mongoose.set('useFindAndModify', false);
 
+export enum TaskStatus {
+  PENDING = 'pending', // task that has yet to be checked-in
+  CHECKED = 'checked', // task that is currently being checked-in with user (yet to be determined as COMPLETED or FAILED)
+  COMPLETED = 'completed', // task that user successfully completed TODO rename to succeeded?
+  FAILED = 'failed', // task that user failed to complete
+  CANCELLED = 'cancelled', // task that has been cancelled
+}
+
 export interface NewTask {
   name: string;
   dueDate: Date;
@@ -15,8 +23,8 @@ export interface NewTask {
 
 export interface Task extends NewTask {
   id: string;
-  isChecked: boolean;
   createdAt: number; // TODO check to see if this is actualy being created
+  status: TaskStatus;
 }
 
 // set up schema blueprint
@@ -26,11 +34,6 @@ const taskSchema = new mongoose.Schema<Task>(
       type: String,
       required: true,
       trim: true,
-    },
-    isChecked: {
-      // TDOO set default ? its being set in plan command rn
-      type: Boolean,
-      required: true,
     },
     dueDate: {
       type: Date,
@@ -51,6 +54,11 @@ const taskSchema = new mongoose.Schema<Task>(
     cost: {
       type: Number,
       default: 0,
+    },
+    status: {
+      type: String,
+      enum: Object.values(TaskStatus),
+      default: TaskStatus.PENDING,
     },
   },
   { timestamps: true },

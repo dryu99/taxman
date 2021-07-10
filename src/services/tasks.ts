@@ -1,4 +1,4 @@
-import TaskModel, { NewTask, Task } from '../models/TaskModel';
+import TaskModel, { NewTask, Task, TaskStatus } from '../models/TaskModel';
 
 const getAll = async (): Promise<Task[]> => {
   const tasks = await TaskModel.find({});
@@ -17,13 +17,13 @@ const getAuthorTasks = async (
 const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   const dueTasks = await TaskModel.find({
     dueDate: { $lte: currDate },
-    isChecked: false,
+    status: TaskStatus.PENDING,
   });
 
   // Update task check flags
   const dueTaskPromises: Promise<Task>[] = [];
   for (const dueTask of dueTasks) {
-    dueTask.isChecked = true;
+    dueTask.status = TaskStatus.CHECKED;
     dueTaskPromises.push(dueTask.save());
   }
 
@@ -32,7 +32,6 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
 
 const add = async (newTask: NewTask): Promise<Task> => {
   const task = new TaskModel({
-    isChecked: false,
     ...newTask,
   });
 
@@ -40,15 +39,14 @@ const add = async (newTask: NewTask): Promise<Task> => {
   return savedTask.toJSON();
 };
 
-// TODO delete eventually
-const check = async (id: string): Promise<void> => {
-  await TaskModel.updateOne({ _id: id }, { $set: { isChecked: true } });
+const update = async (taskID: string, newProps: Partial<Task>) => {
+  await TaskModel.updateOne({ _id: taskID }, { $set: newProps });
 };
 
 export default {
   getAll,
   getDueTasks,
   add,
-  check,
   getAuthorTasks,
+  update,
 };

@@ -1,8 +1,9 @@
 import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
-import { Task } from '../models/TaskModel';
+import { Task, TaskStatus } from '../models/TaskModel';
 import { formatMention } from './utils';
 import theme from './theme';
+import tasks from '../services/tasks';
 
 enum MessageState {
   IDLE = 'idle',
@@ -217,6 +218,10 @@ export default class TaskCheckInMessenger {
     if (notes) {
       embed.addFields({ name: 'Notes', value: notes });
     }
+
+    // update task status
+    await tasks.update(this.task.id, { status: TaskStatus.COMPLETED });
+
     // TODO 'your next task is...?' or 'create a new task!'
     const msg = await this.channel.send(embed);
     return MessageState.IDLE;
@@ -234,6 +239,9 @@ export default class TaskCheckInMessenger {
         } within the next few days.`,
       )
       .addFields({ name: 'Reason', value: reason });
+
+    // update task status
+    await tasks.update(this.task.id, { status: TaskStatus.FAILED });
 
     const msg = await this.channel.send(embed);
     return MessageState.IDLE;
