@@ -1,6 +1,6 @@
 import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
-import { Task } from '../services/tasks';
+import { Task } from '../models/Task';
 import { getMentionString } from '../utils/utils';
 import theme from './theme';
 
@@ -102,7 +102,7 @@ export default class TaskCheckInMessenger {
         { name: 'Task', value: this.task.name },
         {
           name: 'Due Date',
-          value: new Date(this.task.scheduleDate).toDateString(), // TODO include time
+          value: this.task.dueDate.toDateString(), // TODO include time
         },
         {
           name: 'Accountability Partner',
@@ -162,7 +162,7 @@ export default class TaskCheckInMessenger {
         { name: 'Task', value: this.task.name },
         {
           name: 'Due Date',
-          value: new Date(this.task.scheduleDate).toDateString(),
+          value: this.task.dueDate.toDateString(),
         },
         {
           name: 'Task Author',

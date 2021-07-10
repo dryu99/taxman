@@ -81,7 +81,7 @@ module.exports = class PlanCommand extends Command {
     }
 
     // compute date
-    const scheduleDate = DateTime.fromISO(`${date}T${time}`, {
+    const dueDate = DateTime.fromISO(`${date}T${time}`, {
       zone: 'America/Los_Angeles', // TODO change to use user input
     });
 
@@ -91,19 +91,18 @@ module.exports = class PlanCommand extends Command {
       return msg.reply('No partner user was mentioned!');
     }
 
-    // add task
-    taskService.add({
+    // add task TODO handle errors
+    await taskService.add({
       authorID: msg.author.id,
       partnerID: taggedUser.id,
       channelID: msg.channel.id,
       cost: Number(cost),
       name: taskName,
-      createdAt: msg.createdAt.getTime(),
-      scheduleDate: scheduleDate.toMillis(),
+      dueDate: dueDate.toJSDate(),
     });
 
     console.log('users', userService.getAll());
-    console.log('tasks', taskService.getAll());
+    console.log('tasks', await taskService.getAll());
 
     return msg.reply('Task scheduled successfully!');
   }

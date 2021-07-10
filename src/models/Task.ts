@@ -1,9 +1,23 @@
 import mongoose from 'mongoose';
-
 mongoose.set('useFindAndModify', false);
 
+export interface NewTask {
+  name: string;
+  dueDate: Date;
+  cost: number;
+  authorID: string; // user ids
+  partnerID: string;
+  channelID: string;
+}
+
+export interface Task extends NewTask {
+  id: string;
+  isChecked: boolean;
+  createdAt: number;
+}
+
 // set up schema blueprint
-const taskSchema = new mongoose.Schema(
+const taskSchema = new mongoose.Schema<Task>(
   {
     name: {
       type: String,
@@ -11,6 +25,7 @@ const taskSchema = new mongoose.Schema(
       trim: true,
     },
     isChecked: {
+      // TDOO set default ? its being set in plan command rn
       type: Boolean,
       required: true,
     },
@@ -46,6 +61,6 @@ taskSchema.set('toJSON', {
   },
 });
 
-const Task = mongoose.model('Task', taskSchema);
+const TaskModel = mongoose.model<Task>('Task', taskSchema);
 
-export default Task;
+export default TaskModel;

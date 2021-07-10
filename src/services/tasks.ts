@@ -1,52 +1,44 @@
-import { v4 as uuidv4 } from 'uuid';
+import TaskModel, { NewTask, Task } from '../models/Task';
 
-export interface Task extends NewTask {
-  id: string;
-  isChecked: boolean;
-  // id: string;
-  // name: string;
-  // createdAt: number;
-  // scheduleDate: number;
-  // cost: number;
-  // authorID: string; // user ids
-  // partnerID: string;
-}
-
-export interface NewTask {
-  name: string;
-  createdAt: number;
-  scheduleDate: number; // TODO make better name (since its a number)
-  cost: number;
-  authorID: string; // user ids
-  partnerID: string;
-  channelID: string;
-}
-
-const tasks: Task[] = [];
-
-const getAll = (): Task[] => {
-  return tasks;
+const getAll = async (): Promise<Task[]> => {
+  const tasks = await TaskModel.find({});
+  return tasks.map((task) => task.toJSON());
 };
 
-const getDueTasks = (currentDate: number): Task[] => {
-  return tasks.filter(
-    (task) => currentDate > task.scheduleDate && !task.isChecked,
-  );
+// TODO should prob think of some caching mechanism cause this gets fired so frequently lol
+const getDueTasks = async (currDate: Date): Promise<Task[]> => {
+  const dueTasks = await TaskModel.find({
+    dueDate: { $lte: currDate },
+    isChecked: false,
+  });
+
+  // Update task check flags
+  const dueTaskPromises: Promise<Task>[] = [];
+  for (const dueTask of dueTasks) {
+    dueTask.isChecked = true;
+    dueTaskPromises.push(dueTask.save());
+  }
+
+  return Promise.all(dueTaskPromises);
 };
 
-const add = (newTask: NewTask): Task => {
-  const task = {
-    id: uuidv4(),
+const add = async (newTask: NewTask): Promise<Task> => {
+  const task = new TaskModel({
     isChecked: false,
     ...newTask,
-  };
+  });
 
-  tasks.push(task);
-  return task;
+  const savedTask = await task.save();
+  return savedTask.toJSON();
+};
+
+const check = async (id: string): Promise<void> => {
+  await TaskModel.updateOne({ _id: id }, { $set: { isChecked: true } });
 };
 
 export default {
   getAll,
   getDueTasks,
   add,
+  check,
 };

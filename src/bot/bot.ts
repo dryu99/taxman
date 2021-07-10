@@ -1,7 +1,7 @@
-import { MessageEmbed, TextChannel } from 'discord.js';
+import { TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
-import taskService, { Task } from '../services/tasks';
+import taskService from '../services/tasks';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
 // import mongoose from 'mongoose';
 
@@ -30,6 +30,9 @@ export default class Bot {
   }
 
   public async start(): Promise<string | void> {
+    // TODO do sth like this for better interval handling https://stackoverflow.com/questions/52184291/async-await-with-setinterval
+    //      also should be like 10 sec or sth lol
+    //      basically we want to make it so the interval should only continue if the current operation has completed
     this.client.setInterval(() => {
       this.checkTasks();
     }, 5 * 1000);
@@ -46,14 +49,14 @@ export default class Bot {
 
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
-    const dueTasks = taskService.getDueTasks(Date.now());
+    const dueTasks = await taskService.getDueTasks(new Date());
     // console.log('\tall tasks', taskService.getAll());
-    // console.log('\tdue tasks', dueTasks);
+    console.log('Due tasks', dueTasks);
 
     for (const dueTask of dueTasks) {
-      dueTask.isChecked = true; // TODO use updateTask function instead
-      const channel = await this.client.channels.fetch(dueTask.channelID);
+      // await taskService.check(dueTask.id); // check task so it won't be considered due again
 
+      const channel = await this.client.channels.fetch(dueTask.channelID);
       if (!channel.isText()) continue; // TODO sentry
 
       const taskCheckInMessager = new TaskCheckInMessenger(

@@ -1,4 +1,4 @@
-import { Task } from './tasks';
+import { Task } from '../models/Task';
 
 export interface User extends NewUser {
   tasks: Task[];

@@ -1,5 +1,3 @@
-import { MessageEmbed } from 'discord.js';
-import { CommandoClient } from 'discord.js-commando';
 import dotenv from 'dotenv';
 import Bot from './bot/Bot';
 import mongoose from 'mongoose';
@@ -15,9 +13,9 @@ const main = async () => {
       useUnifiedTopology: true,
     });
 
-    console.log('connected to MongoDB');
+    console.log('Connected to MongoDB successfully');
   } catch (e) {
-    console.error('error connecting to MongoDB:', e.message);
+    console.error('Error connecting to MongoDB:', e.message);
   }
 
   // Start bot
