@@ -19,7 +19,7 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
     dueTaskPromises.push(dueTask.save());
   }
 
-  return Promise.all(dueTaskPromises);
+  return Promise.all(dueTaskPromises); // TODO have to call toJson here??
 };
 
 const add = async (newTask: NewTask): Promise<Task> => {
@@ -32,6 +32,7 @@ const add = async (newTask: NewTask): Promise<Task> => {
   return savedTask.toJSON();
 };
 
+// TODO delete eventually
 const check = async (id: string): Promise<void> => {
   await TaskModel.updateOne({ _id: id }, { $set: { isChecked: true } });
 };

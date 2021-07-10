@@ -50,12 +50,10 @@ export default class Bot {
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
     const dueTasks = await taskService.getDueTasks(new Date());
-    // console.log('\tall tasks', taskService.getAll());
-    console.log('Due tasks', dueTasks);
+    console.log('\tDue tasks', dueTasks);
 
+    // TOOD consider scenario where multiple users schedule task due dates at same time
     for (const dueTask of dueTasks) {
-      // await taskService.check(dueTask.id); // check task so it won't be considered due again
-
       const channel = await this.client.channels.fetch(dueTask.channelID);
       if (!channel.isText()) continue; // TODO sentry
 

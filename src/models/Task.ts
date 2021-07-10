@@ -5,15 +5,16 @@ export interface NewTask {
   name: string;
   dueDate: Date;
   cost: number;
-  authorID: string; // user ids
+  authorID: string;
   partnerID: string;
   channelID: string;
+  // TODO guildID
 }
 
 export interface Task extends NewTask {
   id: string;
   isChecked: boolean;
-  createdAt: number;
+  createdAt: number; // TODO check to see if this is actualy being created
 }
 
 // set up schema blueprint

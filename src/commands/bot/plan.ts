@@ -16,6 +16,7 @@ enum PlanCommandArgs {
   PARTNER = 'partner',
 }
 
+// TODO rename this to Schedule
 module.exports = class PlanCommand extends Command {
   constructor(client: CommandoClient) {
     super(client, {
