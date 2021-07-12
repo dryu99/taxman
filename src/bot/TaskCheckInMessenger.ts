@@ -16,6 +16,7 @@ enum MessageState {
   SUCCESS = 'success',
 }
 
+// TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 export default class TaskCheckInMessenger {
   private task: Task;
   private channel: TextChannel;

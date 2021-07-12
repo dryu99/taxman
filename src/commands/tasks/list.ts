@@ -4,21 +4,22 @@ import theme from '../../bot/theme';
 import { Task, TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
 import { formatMention } from '../../bot/utils';
-import { scheduleCommandName } from './schedule';
+import ScheduleCommand from './schedule';
 
 enum ListCommandArgs {
   OPTION = 'option',
 }
 
-export const listCommandName = 'list';
-
+// TODO order of tasks should be newest -> oldest
 class ListCommand extends Command {
+  static DEFAULT_CMD_NAME = 'list';
+
   constructor(client: CommandoClient) {
     super(client, {
-      name: listCommandName,
-      aliases: [listCommandName],
+      name: ListCommand.DEFAULT_CMD_NAME,
+      aliases: [ListCommand.DEFAULT_CMD_NAME],
       group: 'tasks',
-      memberName: listCommandName,
+      memberName: ListCommand.DEFAULT_CMD_NAME,
       description: 'View your upcoming tasks.', // TODO allow users to pass in 'complete'/'pending' args to filter list
       args: [
         {
@@ -78,7 +79,7 @@ class ListCommand extends Command {
       embed.addFields(fields);
     } else {
       embed.setDescription(
-        `You have no upcoming tasks! Use the $\`${scheduleCommandName}\` command to schedule a new task`,
+        `You have no upcoming tasks! Use the \`$${ScheduleCommand.DEFAULT_CMD_NAME}\` command to schedule a new task`,
       );
     }
 

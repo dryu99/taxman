@@ -15,16 +15,17 @@ enum ScheduleCommandArgs {
 }
 
 const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
-export const scheduleCommandName = 'schedule';
 
 // TODO rename this to New?
 class ScheduleCommand extends Command {
+  static DEFAULT_CMD_NAME = 'schedule';
+
   constructor(client: CommandoClient) {
     super(client, {
-      name: scheduleCommandName,
-      aliases: [scheduleCommandName],
+      name: ScheduleCommand.DEFAULT_CMD_NAME,
+      aliases: [ScheduleCommand.DEFAULT_CMD_NAME],
       group: 'tasks',
-      memberName: scheduleCommandName,
+      memberName: ScheduleCommand.DEFAULT_CMD_NAME,
       description: 'Schedule a new task.',
       args: [
         {
