@@ -6,6 +6,7 @@ export interface Settings {
   guildID: string;
   gracePeriodMinutes: number;
   reactionTimeoutMinutes: number;
+  // TODO guildName?
 }
 
 const settingsSchema = new mongoose.Schema<Settings>(

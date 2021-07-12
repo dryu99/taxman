@@ -1,6 +1,7 @@
 import { TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
+import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
 
@@ -11,6 +12,7 @@ export default class Bot {
     this.client = new CommandoClient({
       commandPrefix: '$', // TODO change to ! (figure out how to avoid conflicts with other bots e.g. rhythm bot)
       owner: process.env.OWNER_ID,
+      // presence: TODO do this https://discord.js.org/#/docs/main/stable/typedef/PresenceData
     });
 
     // register commands
@@ -24,7 +26,21 @@ export default class Bot {
       console.log(
         `Logged in as ${this.client.user?.tag}! (${this.client.user?.id})`,
       );
+
       this.client.user?.setActivity('with Commando');
+    });
+
+    this.client.on('guildCreate', async (guild) => {
+      guild?.systemChannel?.send(
+        `Hello, I'm the Taxman. Yeaaah I'm the Taxman. Thanks for inviting me!`, // TODO more detailed intro (print commands)
+      );
+
+      // init settings
+      await settingsService.init(guild.id);
+    });
+
+    this.client.on('guildDelete', (guild) => {
+      // TODO delete guild settings here?
     });
   }
 
