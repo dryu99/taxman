@@ -40,7 +40,7 @@ export default class Bot {
     });
 
     this.client.on('guildDelete', (guild) => {
-      // TODO delete guild settings here?
+      // TODO delete guild settings here
     });
   }
 

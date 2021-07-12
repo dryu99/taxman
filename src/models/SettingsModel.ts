@@ -4,7 +4,8 @@ mongoose.set('useFindAndModify', false);
 export interface Settings {
   id: string; // TODO maybe id should be guild id
   guildID: string;
-  gracePeriodMinutes: number;
+  gracePeriodMinutes: number; // min before task due dates where users can't cancel/edit tasks // TODO rename to penaltyPeriod or sth
+  // penaltyPeriodMinutes 'when should grace period end?'
   reactionTimeoutMinutes: number;
   // TODO guildName?
 }

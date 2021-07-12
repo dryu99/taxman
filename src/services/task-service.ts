@@ -5,6 +5,11 @@ const getAll = async (): Promise<Task[]> => {
   return tasks.map((task) => task.toJSON());
 };
 
+const getOne = async (taskID: string) => {
+  const task = await TaskModel.findById(taskID);
+  return task;
+};
+
 const getAuthorTasks = async (
   authorID: string,
   filter: Partial<Task>,
@@ -30,6 +35,7 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   return Promise.all(dueTaskPromises); // TODO have to call toJson here??
 };
 
+// TODO have to auth users for write operations (ow other users could mess with your shit)
 const add = async (newTask: NewTask): Promise<Task> => {
   const task = new TaskModel({
     ...newTask,
@@ -45,6 +51,7 @@ const update = async (taskID: string, newProps: Partial<Task>) => {
 
 const taskService = {
   getAll,
+  getOne,
   getDueTasks,
   add,
   getAuthorTasks,

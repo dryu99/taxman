@@ -13,12 +13,13 @@ export interface NewTask {
   name: string;
   dueDate: Date;
   cost: number; // TODO rename to payout?
-  authorID: string; // TODO consider changing to userID
+  authorID: string; // TODO consider changing to userID or discordUserID
   partnerID: string;
   channelID: string;
   // TODO guildID
   // frequency
   // reminderMinutes
+  // discordGuildMemberID
 }
 
 export interface Task extends NewTask {
