@@ -5,9 +5,9 @@ const getAll = async (): Promise<Task[]> => {
   return tasks.map((task) => task.toJSON());
 };
 
-const getOne = async (taskID: string) => {
+const getByID = async (taskID: string): Promise<Task | undefined> => {
   const task = await TaskModel.findById(taskID);
-  return task;
+  return task?.toJSON();
 };
 
 const getAuthorTasks = async (
@@ -51,7 +51,7 @@ const update = async (taskID: string, newProps: Partial<Task>) => {
 
 const taskService = {
   getAll,
-  getOne,
+  getByID,
   getDueTasks,
   add,
   getAuthorTasks,

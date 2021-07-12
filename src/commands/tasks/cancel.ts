@@ -1,5 +1,7 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
+import Bot from '../../bot/Bot';
 import { TaskStatus } from '../../models/TaskModel';
+import settingsService from '../../services/settings-service';
 import taskService from '../../services/task-service';
 import ListCommand from './list';
 
@@ -31,22 +33,28 @@ class CancelCommand extends Command {
   async run(msg: CommandoMessage, args: Record<CancelCommandArgs, string>) {
     const { taskID } = args;
 
-    // try {
-    //   const task = await taskService.getOne(taskID);
-
-    //   // fetch settings
-
-    //   // if current time is in penalty period
-    //   // if (Date.now() >= task.dueDate - settings.gracePeriodMinutes) {
-    //   //   return msg.reply('bitch it's too late')
-    //   // }
-    // } catch (e) {
-    //   return msg.reply(
-    //     `The task ID you gave doesn't exist! You can find the exact ID with the \`$${ListCommand.DEFAULT_CMD_NAME}\` command`,
-    //   );
-    // }
-
     try {
+      // TODO can fetch both at same time
+      const task = await taskService.getByID(taskID);
+      const settings = await settingsService.getByGuildID(msg.guild.id);
+
+      if (!task)
+        return msg.reply(
+          `The task ID you gave doesn't exist! You can find the exact ID with the \`$${ListCommand.DEFAULT_CMD_NAME}\` command`,
+        );
+
+      if (!settings)
+        return msg.reply(
+          `Your server doesn't have settings for ${Bot.NAME}... Please contact admin.`, // TODO or please support server or sth
+        );
+
+      // Check grace period
+      const hasGracePeriodEnded =
+        Date.now() >=
+        task.dueDate.getTime() - settings.penaltyPeriodMinutes * 60 * 1000; // TODO will timezones affect this...
+      if (hasGracePeriodEnded) return msg.reply("Bitch it's too late."); // TODO change text lol
+
+      // Update task status
       await taskService.update(taskID, { status: TaskStatus.CANCELLED });
 
       // TODO should prompt user to confirm action
@@ -56,10 +64,8 @@ class CancelCommand extends Command {
         'Task cancelled successfully! You will not be prompted for a check-in.',
       );
     } catch (e) {
-      // TODO better error handling (e.g. 'bad id' vs 'sth went wrong with the req')
-      return msg.reply(
-        `The task ID you gave doesn't exist! You can find the exact ID with the \`$${ListCommand.DEFAULT_CMD_NAME}\` command`,
-      );
+      console.error(e);
+      return msg.reply(`Internal bot error, please contact admin.`);
     }
   }
 }

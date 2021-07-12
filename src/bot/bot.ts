@@ -6,6 +6,8 @@ import taskService from '../services/task-service';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
 
 export default class Bot {
+  static NAME: string = 'TaxBot';
+
   private client: CommandoClient;
 
   constructor() {
@@ -59,13 +61,13 @@ export default class Bot {
 
   private async checkTasks(): Promise<void> {
     console.log(
-      `Bot: checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
+      `[BOT] Checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
     );
 
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
     const dueTasks = await taskService.getDueTasks(new Date());
-    console.log('\tDue tasks', dueTasks);
+    console.log('  Due tasks:', dueTasks);
 
     // TOOD consider scenario where multiple users schedule task due dates at same time
     for (const dueTask of dueTasks) {
