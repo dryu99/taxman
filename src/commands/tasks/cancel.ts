@@ -48,6 +48,9 @@ class CancelCommand extends Command {
           `Your server doesn't have settings for ${Bot.NAME}... Please contact admin.`, // TODO or please support server or sth
         );
 
+      if (task.authorID !== msg.author.id)
+        return msg.reply(`You can't cancel other people's tasks!`);
+
       // Check grace period
       const hasGracePeriodEnded =
         Date.now() >=
