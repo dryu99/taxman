@@ -16,7 +16,7 @@ enum CancelCommandArgs {
 }
 
 class CancelCommand extends Command {
-  static DEFAULT_CMD_NAME = 'scrap';
+  static DEFAULT_CMD_NAME = 'cancel';
 
   constructor(client: CommandoClient) {
     super(client, {
@@ -49,6 +49,11 @@ class CancelCommand extends Command {
 
       if (task.authorID !== msg.author.id)
         return msg.reply(`You can't cancel other people's tasks!`);
+
+      if (task.status !== TaskStatus.PENDING)
+        return msg.reply(
+          `You can only cancel pending tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
+        );
 
       // Check grace period
       if (hasGracePeriodEnded(task, settings))

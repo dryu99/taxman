@@ -3,14 +3,21 @@ import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { Task, TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
-import { formatMention, hasGracePeriodEnded } from '../../bot/utils';
+import {
+  createTaskEmbed,
+  formatMention,
+  getReaction,
+  hasGracePeriodEnded,
+} from '../../bot/utils';
 import ScheduleCommand from './schedule';
 import settingsService from '../../services/settings-service';
 import {
   INTERNAL_ERROR,
   INVALID_TASK_ID_ERROR,
   MISSING_SETTINGS_ERROR,
+  TimeoutError,
 } from '../../bot/errors';
+import ListCommand from './list';
 
 enum EditCommandArgs {
   TASK_ID = 'taskID',
@@ -49,21 +56,30 @@ class EditCommand extends Command {
       if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
 
       if (task.authorID !== msg.author.id)
-        return msg.reply(`You can't edit other people's tasks!`); // TODO will timezones affect this...
+        return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
 
       // TODO check if task is pending or not
+      if (task.status !== TaskStatus.PENDING)
+        return msg.reply(
+          `You can only edit pending tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
+        ); // TODO pending or upcoming?
 
       if (hasGracePeriodEnded(task, settings))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
-      const embed = new MessageEmbed()
-        .setColor(theme.colors.primary.main)
-        .setTitle(`Edit Task`)
-        .setDescription('Edit a task...');
+      const embed = createTaskEmbed(task, 'Edit Task');
+      const sentMsg = await msg.reply(embed);
 
-      return msg.reply(embed);
+      const reaction = await getReaction(
+        sentMsg,
+        ['⏰', '✏️', '✅', '❌'],
+        task.authorID,
+        5 * 60 * 1000,
+      );
+
+      return msg.reply(`hehe ${reaction.emoji.name}`);
     } catch (e) {
-      console.error(e);
+      if (e instanceof TimeoutError) return msg.reply(e.message);
       return msg.reply(INTERNAL_ERROR);
     }
   }
