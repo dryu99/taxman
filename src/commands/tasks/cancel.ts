@@ -10,7 +10,7 @@ enum CancelCommandArgs {
 }
 
 class CancelCommand extends Command {
-  static DEFAULT_CMD_NAME = 'cancel';
+  static DEFAULT_CMD_NAME = 'scrap';
 
   constructor(client: CommandoClient) {
     super(client, {

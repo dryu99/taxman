@@ -11,6 +11,7 @@ enum ListCommandArgs {
 }
 
 // TODO order of tasks should be newest -> oldest
+// TODO prob just support 'all' flag (no past)
 class ListCommand extends Command {
   static DEFAULT_CMD_NAME = 'list';
 

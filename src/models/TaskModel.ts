@@ -20,6 +20,7 @@ export interface NewTask {
   // frequency
   // reminderMinutes
   // discordGuildMemberID
+  // TODO isChargeable
 }
 
 export interface Task extends NewTask {
@@ -72,6 +73,12 @@ taskSchema.set('toJSON', {
     delete returnedObject.__v;
   },
 });
+
+// TODO stretch goal: make schema instance methods https://medium.com/@agentwhs/complete-guide-for-typescript-for-mongoose-for-node-js-8cc0a7e470c1
+// taskSchema.methods.hasGracePeriodEnded = function (this: Task) {
+//   console.log('this', this);
+//   return this.name + '!';
+// };
 
 const TaskModel = mongoose.model<Task>('Task', taskSchema);
 
