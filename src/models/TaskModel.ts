@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 mongoose.set('useFindAndModify', false);
 
 export enum TaskStatus {
@@ -28,6 +28,8 @@ export interface Task extends NewTask {
   createdAt: number; // TODO check to see if this is actualy being created
   status: TaskStatus;
 }
+
+export type MongoTask = Task & Document<any, any, Task>;
 
 // set up schema blueprint
 const taskSchema = new mongoose.Schema<Task>(

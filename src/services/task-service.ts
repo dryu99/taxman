@@ -1,4 +1,9 @@
-import TaskModel, { NewTask, Task, TaskStatus } from '../models/TaskModel';
+import TaskModel, {
+  MongoTask,
+  NewTask,
+  Task,
+  TaskStatus,
+} from '../models/TaskModel';
 
 const getAll = async (): Promise<Task[]> => {
   const tasks = await TaskModel.find({});
@@ -15,7 +20,7 @@ const getAuthorTasks = async (
   filter: Partial<Task>,
 ): Promise<Task[]> => {
   const tasks = await TaskModel.find({ authorID, ...filter });
-  return tasks;
+  return tasks.map((task) => task.toJSON());
 };
 
 // TODO should prob think of some caching mechanism cause this gets fired so frequently lol
@@ -26,13 +31,15 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   });
 
   // Update task check flags
-  const dueTaskPromises: Promise<Task>[] = [];
+  const dueTaskPromises: Promise<MongoTask>[] = [];
   for (const dueTask of dueTasks) {
     dueTask.status = TaskStatus.CHECKED;
     dueTaskPromises.push(dueTask.save());
   }
 
-  return Promise.all(dueTaskPromises); // TODO have to call toJson here??
+  const updatedDueTasks = await Promise.all(dueTaskPromises);
+
+  return updatedDueTasks.map((task) => task.toJSON()); // TODO have to call toJson here??
 };
 
 // TODO have to auth users for write operations (ow other users could mess with your shit)
