@@ -63,7 +63,7 @@ export const getReaction = async (
   msg: Message,
   emojis: string[],
   reactorUserID: string,
-  reactionTimeLimitMillisecs: number,
+  reactionTimeLimitMinutes: number,
 ): Promise<MessageReaction> => {
   reactToMsg(msg, emojis); // we don't await here b/c we want to let users react even if not all reactions have appeared
 
@@ -73,7 +73,7 @@ export const getReaction = async (
         emojis.includes(reaction.emoji.name) && user.id === reactorUserID,
       {
         max: 1,
-        time: reactionTimeLimitMillisecs,
+        time: reactionTimeLimitMinutes * 60 * 1000,
         errors: ['time'],
       },
     );

@@ -79,13 +79,16 @@ export default class Bot {
       const channel = await this.client.channels.fetch(dueTask.channelID);
       if (!channel.isText()) continue; // TODO sentry
 
-      const taskCheckInMessager = new TaskCheckInMessenger(
+      // TODO once we get access to guild id fetch settings so we can pass to check in messenger
+      // const settings = settingsService.getByGuildID(dueTas)
+
+      const taskCheckInMessenger = new TaskCheckInMessenger(
         dueTask,
         this.client,
         channel as TextChannel,
       );
 
-      await taskCheckInMessager.prompt();
+      await taskCheckInMessenger.prompt();
     }
   }
 }

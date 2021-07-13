@@ -74,7 +74,7 @@ class EditCommand extends Command {
         sentMsg,
         ['⏰', '✏️', '✅', '❌'],
         task.authorID,
-        5 * 60 * 1000,
+        5,
       );
 
       return msg.reply(`hehe ${reaction.emoji.name}`);

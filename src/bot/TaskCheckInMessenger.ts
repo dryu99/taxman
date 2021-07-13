@@ -1,9 +1,10 @@
-import { MessageEmbed, MessageReaction, TextChannel } from 'discord.js';
+import { MessageEmbed, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import { Task, TaskStatus } from '../models/TaskModel';
-import { formatMention } from './utils';
+import { formatMention, getReaction } from './utils';
 import theme from './theme';
 import taskService from '../services/task-service';
+import { TimeoutError } from './errors';
 
 enum MessageState {
   IDLE = 'idle',
@@ -14,9 +15,11 @@ enum MessageState {
   PARTNER_CONFIRM_TIMEOUT = 'partner_confirm_timeout',
   PARTNER_CONFIRM_FAILURE = 'partner_confirm_failure',
   SUCCESS = 'success',
+  ERROR = 'error',
 }
 
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
+// TODO partner confirm embed contains redundant info... make it smaller
 export default class TaskCheckInMessenger {
   private task: Task;
   private channel: TextChannel;
@@ -75,13 +78,13 @@ export default class TaskCheckInMessenger {
           console.log('exiting message loop');
           return; // exit message loop
         }
-        default: {
-          console.error(
-            'unknown taskcheckinmessengerstate received',
-            this.state,
-          );
-          return; // exit message loop
+        case MessageState.ERROR: {
           // TODO sentry
+          return; // exit message loop
+        }
+        default: {
+          console.error('Unknown state received', this.state);
+          return; // exit message loop
         }
       }
     }
@@ -117,32 +120,22 @@ export default class TaskCheckInMessenger {
       );
 
     const msg = await this.channel.send(embed);
-    msg
-      .react('👍')
-      .then(() => msg.react('👎'))
-      .catch((e) => console.error('One of the emojis failed to react:', e));
 
     try {
-      const collectedReactions = await msg.awaitReactions(
-        (reaction, user) =>
-          ['👍', '👎'].includes(reaction.emoji.name) &&
-          user.id === this.task.authorID,
-        {
-          max: 1,
-          time: reactionTimeLimitMinutes * 60 * 1000,
-          errors: ['time'],
-        },
+      const reaction = await getReaction(
+        msg,
+        ['👍', '👎'],
+        this.task.authorID,
+        reactionTimeLimitMinutes,
       );
 
-      const reaction = collectedReactions.first();
-
-      // update message state
-      return reaction?.emoji.name === '👍'
+      return reaction.emoji.name === '👍'
         ? MessageState.PARTNER_CONFIRM
         : MessageState.AUTHOR_CHECK_IN_FAILURE;
     } catch (e) {
-      // TODO may need to handle other errors here too
-      return MessageState.AUTHOR_CHECK_IN_TIMEOUT;
+      if (e instanceof TimeoutError)
+        return MessageState.AUTHOR_CHECK_IN_TIMEOUT;
+      return MessageState.ERROR;
     }
   }
 
@@ -177,32 +170,22 @@ export default class TaskCheckInMessenger {
       );
 
     const msg = await this.channel.send(embed);
-    msg // TODO abstract this logic
-      .react('👍')
-      .then(() => msg.react('👎'))
-      .catch((e) => console.error('One of the emojis failed to react:', e));
 
     try {
-      // TODO abstract this logic
-      const collectedReactions = await msg.awaitReactions(
-        (reaction, user) =>
-          ['👍', '👎'].includes(reaction.emoji.name) &&
-          user.id === this.task.partnerID,
-        {
-          max: 1,
-          time: reactionTimeLimitMinutes * 60 * 1000,
-          errors: ['time'],
-        },
+      const reaction = await getReaction(
+        msg,
+        ['👍', '👎'],
+        this.task.partnerID,
+        reactionTimeLimitMinutes,
       );
 
-      const reaction = collectedReactions.first();
-
-      // update message state
-      return reaction?.emoji.name === '👍'
+      return reaction.emoji.name === '👍'
         ? MessageState.SUCCESS
         : MessageState.PARTNER_CONFIRM_FAILURE;
     } catch (e) {
-      return MessageState.PARTNER_CONFIRM_TIMEOUT;
+      if (e instanceof TimeoutError)
+        return MessageState.PARTNER_CONFIRM_TIMEOUT;
+      return MessageState.ERROR;
     }
   }
 
