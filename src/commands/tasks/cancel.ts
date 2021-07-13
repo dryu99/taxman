@@ -4,6 +4,12 @@ import { TaskStatus } from '../../models/TaskModel';
 import settingsService from '../../services/settings-service';
 import taskService from '../../services/task-service';
 import ListCommand from './list';
+import {
+  INTERNAL_ERROR,
+  INVALID_TASK_ID_ERROR,
+  MISSING_SETTINGS_ERROR,
+} from '../../bot/errors';
+import { hasGracePeriodEnded } from '../../bot/utils';
 
 enum CancelCommandArgs {
   TASK_ID = 'taskID',
@@ -38,24 +44,15 @@ class CancelCommand extends Command {
       const task = await taskService.getByID(taskID);
       const settings = await settingsService.getByGuildID(msg.guild.id);
 
-      if (!task)
-        return msg.reply(
-          `The task ID you gave doesn't exist! You can find the exact ID with the \`$${ListCommand.DEFAULT_CMD_NAME}\` command`,
-        );
-
-      if (!settings)
-        return msg.reply(
-          `Your server doesn't have settings for ${Bot.NAME}... Please contact admin.`, // TODO or please support server or sth
-        );
+      if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
+      if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
 
       if (task.authorID !== msg.author.id)
         return msg.reply(`You can't cancel other people's tasks!`);
 
       // Check grace period
-      const hasGracePeriodEnded =
-        Date.now() >=
-        task.dueDate.getTime() - settings.penaltyPeriodMinutes * 60 * 1000; // TODO will timezones affect this...
-      if (hasGracePeriodEnded) return msg.reply("Bitch it's too late."); // TODO change text lol
+      if (hasGracePeriodEnded(task, settings))
+        return msg.reply("Bitch it's too late."); // TODO change text lol
 
       // Update task status
       await taskService.update(taskID, { status: TaskStatus.CANCELLED });
@@ -68,7 +65,7 @@ class CancelCommand extends Command {
       );
     } catch (e) {
       console.error(e);
-      return msg.reply(`Internal bot error, please contact admin.`);
+      return msg.reply(INTERNAL_ERROR);
     }
   }
 }

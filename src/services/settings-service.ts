@@ -19,7 +19,7 @@ const remove = async () => {};
 
 const getByGuildID = async (guildID: string): Promise<Settings | undefined> => {
   const settings = await SettingsModel.findOne({ guildID });
-  return settings?.toJSON();
+  return settings?.toJSON(); // tODO maybe throw error here since it should never happen
 };
 
 const settingsService = {

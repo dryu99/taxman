@@ -23,6 +23,11 @@ export default class Bot {
       .registerDefaults()
       .registerCommandsIn(path.join(__dirname, '../commands'));
 
+    // TODO better error handling here?
+    // this.client.on('error', (e) => {
+    //   console.log('ERROR', e);
+    // });
+
     // register event handlers
     this.client.on('ready', async () => {
       console.log(
