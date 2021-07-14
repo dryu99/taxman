@@ -82,13 +82,10 @@ export default class Bot {
       // TODO once we get access to guild id fetch settings so we can pass to check in messenger
       // const settings = settingsService.getByGuildID(dueTas)
 
-      const taskCheckInMessenger = new TaskCheckInMessenger(
-        dueTask,
-        this.client,
-        channel as TextChannel,
-      );
+      const taskCheckInMessenger = new TaskCheckInMessenger(dueTask, channel);
 
-      await taskCheckInMessenger.prompt();
+      // TODO this is async and will fire right away -> what would this look like with 100s of tasks on dozens of servers?
+      taskCheckInMessenger.prompt();
     }
   }
 }

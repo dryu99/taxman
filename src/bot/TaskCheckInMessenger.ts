@@ -1,10 +1,10 @@
-import { MessageEmbed, TextChannel } from 'discord.js';
-import { CommandoClient } from 'discord.js-commando';
+import { MessageEmbed } from 'discord.js';
 import { Task, TaskStatus } from '../models/TaskModel';
 import { formatMention, getReaction } from './utils';
 import theme from './theme';
 import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
+import { DiscordTextChannel } from './types';
 
 enum MessageState {
   IDLE = 'idle',
@@ -22,13 +22,11 @@ enum MessageState {
 // TODO partner confirm embed contains redundant info... make it smaller
 export default class TaskCheckInMessenger {
   private task: Task;
-  private channel: TextChannel;
-  private client: CommandoClient;
+  private channel: DiscordTextChannel;
   private state: MessageState;
 
-  constructor(task: Task, client: CommandoClient, channel: TextChannel) {
+  constructor(task: Task, channel: DiscordTextChannel) {
     this.task = task;
-    this.client = client;
     this.channel = channel;
     this.state = MessageState.AUTHOR_CHECK_IN; // start state
   }
@@ -129,9 +127,10 @@ export default class TaskCheckInMessenger {
         reactionTimeLimitMinutes,
       );
 
-      return reaction.emoji.name === '👍'
-        ? MessageState.PARTNER_CONFIRM
-        : MessageState.AUTHOR_CHECK_IN_FAILURE;
+      const emojiStr = reaction.emoji.name;
+      if (emojiStr === '👍') return MessageState.PARTNER_CONFIRM;
+      if (emojiStr === '👎') return MessageState.AUTHOR_CHECK_IN_FAILURE;
+      return MessageState.ERROR;
     } catch (e) {
       if (e instanceof TimeoutError)
         return MessageState.AUTHOR_CHECK_IN_TIMEOUT;
@@ -179,9 +178,10 @@ export default class TaskCheckInMessenger {
         reactionTimeLimitMinutes,
       );
 
-      return reaction.emoji.name === '👍'
-        ? MessageState.SUCCESS
-        : MessageState.PARTNER_CONFIRM_FAILURE;
+      const emojiStr = reaction.emoji.name;
+      if (emojiStr === '👍') return MessageState.SUCCESS;
+      if (emojiStr === '👎') return MessageState.PARTNER_CONFIRM_FAILURE;
+      return MessageState.ERROR;
     } catch (e) {
       if (e instanceof TimeoutError)
         return MessageState.PARTNER_CONFIRM_TIMEOUT;
