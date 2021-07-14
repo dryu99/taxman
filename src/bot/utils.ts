@@ -17,12 +17,11 @@ export const hasGracePeriodEnded = (task: Task, settings: Settings) => {
 
 export const createTaskEmbed = (
   task: Task,
-  title: string,
+  title?: string,
   description?: string,
 ): MessageEmbed => {
   const embed = new MessageEmbed()
     .setColor(theme.colors.primary.main)
-    .setTitle(title)
     .addFields(
       // {
       //   name: `\`${task.id.substring(0, 5)}\` - ${task.name}`,
@@ -52,9 +51,8 @@ export const createTaskEmbed = (
       },
     );
 
-  if (description) {
-    embed.setDescription(description);
-  }
+  if (title) embed.setTitle(title);
+  if (description) embed.setDescription(description);
 
   return embed;
 };

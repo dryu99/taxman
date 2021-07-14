@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 
 dotenv.config();
 
+// TODO give embeds and msg variables more specific names
 const main = async () => {
   // Setup db
   try {

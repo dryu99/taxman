@@ -1,4 +1,4 @@
-import { MessageEmbed } from 'discord.js';
+import { MessageEmbed, TextChannel } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { Task, TaskStatus } from '../../models/TaskModel';
@@ -18,6 +18,7 @@ import {
   TimeoutError,
 } from '../../bot/errors';
 import ListCommand from './list';
+import TaskEditMessenger from '../../bot/TaskEditMessenger';
 
 enum EditCommandArgs {
   TASK_ID = 'taskID',
@@ -67,17 +68,20 @@ class EditCommand extends Command {
       if (hasGracePeriodEnded(task, settings))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
-      const embed = createTaskEmbed(task, 'Edit Task');
-      const sentMsg = await msg.reply(embed);
+      // send task embed
+      const taskEmbed = createTaskEmbed(task);
+      await msg.reply(taskEmbed);
 
-      const reaction = await getReaction(
-        sentMsg,
-        ['⏰', '✏️', '✅', '❌'],
-        task.authorID,
-        5,
-      );
+      //
+      const channel = await this.client.channels.fetch(task.channelID);
+      if (!channel.isText()) return msg.reply('oops');
 
-      return msg.reply(`hehe ${reaction.emoji.name}`);
+      const taskEditMessenger = new TaskEditMessenger(task, channel);
+      await taskEditMessenger.prompt();
+
+      // TODO finish this
+      //      make 2 embed, one with task data, one with reaction legend
+      return msg.reply(`hehe `);
     } catch (e) {
       if (e instanceof TimeoutError) return msg.reply(e.message);
       return msg.reply(INTERNAL_ERROR);
