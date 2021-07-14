@@ -1,6 +1,7 @@
 import { TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
+import logger from '../lib/logger';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
 import TaskCheckInMessenger from './TaskCheckInMessenger';
@@ -30,7 +31,7 @@ export default class Bot {
 
     // register event handlers
     this.client.on('ready', async () => {
-      console.log(
+      logger.info(
         `Logged in as ${this.client.user?.tag}! (${this.client.user?.id})`,
       );
 
@@ -65,14 +66,14 @@ export default class Bot {
   }
 
   private async checkTasks(): Promise<void> {
-    console.log(
+    logger.info(
       `[BOT] Checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
     );
 
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
     const dueTasks = await taskService.getDueTasks(new Date());
-    console.log('  Due tasks:', dueTasks);
+    logger.info('  Due tasks:', dueTasks);
 
     // TOOD consider scenario where multiple users schedule task due dates at same time
     for (const dueTask of dueTasks) {

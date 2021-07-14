@@ -31,7 +31,7 @@ class ListCommand extends Command {
           `,
           type: 'string',
           oneOf: ['all', 'past'],
-          default: 'upcoming',
+          default: 'upcoming', // TODO wtf delete
         },
       ],
     });

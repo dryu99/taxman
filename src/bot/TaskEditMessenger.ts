@@ -6,6 +6,7 @@ import theme from './theme';
 import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
 import { DiscordTextChannel } from './types';
+import logger from '../lib/logger';
 
 enum MessageState {
   START = 'start',
@@ -46,11 +47,11 @@ export default class TaskEditMessenger {
           break;
         }
         case MessageState.END: {
-          console.log('exiting message loop');
+          logger.info('exiting message loop');
           return;
         }
         default: {
-          console.error('Unknown state received', this.state);
+          logger.error('Unknown state received', this.state);
           return; // exit message loop
         }
       }
@@ -87,7 +88,6 @@ export default class TaskEditMessenger {
       );
 
       const emojiStr = reaction.emoji.name;
-
       if (emojiStr === '✏️') return MessageState.EDIT_TITLE;
       if (emojiStr === '⏰') return MessageState.EDIT_DUE_DATE;
       if (emojiStr === '✅') return MessageState.CONFIRM;

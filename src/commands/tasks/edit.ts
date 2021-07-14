@@ -19,6 +19,7 @@ import {
 } from '../../bot/errors';
 import ListCommand from './list';
 import TaskEditMessenger from '../../bot/TaskEditMessenger';
+import logger from '../../lib/logger';
 
 enum EditCommandArgs {
   TASK_ID = 'taskID',
@@ -83,6 +84,7 @@ class EditCommand extends Command {
       //      make 2 embed, one with task data, one with reaction legend
       return msg.reply(`hehe `);
     } catch (e) {
+      logger.error(e); // TODO make logger utils
       if (e instanceof TimeoutError) return msg.reply(e.message);
       return msg.reply(INTERNAL_ERROR);
     }

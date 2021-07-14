@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import Bot from './bot/Bot';
 import mongoose from 'mongoose';
+import logger from './lib/logger';
 
 dotenv.config();
 
@@ -14,9 +15,9 @@ const main = async () => {
       useUnifiedTopology: true,
     });
 
-    console.log('Connected to MongoDB successfully');
+    logger.info('Connected to MongoDB successfully');
   } catch (e) {
-    console.error('Error connecting to MongoDB:', e.message);
+    logger.error('Error connecting to MongoDB:', e.message);
   }
 
   // Start bot

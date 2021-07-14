@@ -10,8 +10,8 @@ export enum TaskStatus {
 }
 
 export interface NewTask {
-  name: string;
-  dueDate: Date;
+  name: string; // tODO rename to title?
+  dueDate: Date; // TODO rename to deadline
   cost: number; // TODO rename to payout?
   authorID: string; // TODO consider changing to userID or discordUserID
   partnerID: string;

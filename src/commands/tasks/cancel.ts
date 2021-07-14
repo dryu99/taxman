@@ -10,6 +10,7 @@ import {
   MISSING_SETTINGS_ERROR,
 } from '../../bot/errors';
 import { hasGracePeriodEnded } from '../../bot/utils';
+import logger from '../../lib/logger';
 
 enum CancelCommandArgs {
   TASK_ID = 'taskID',
@@ -69,7 +70,7 @@ class CancelCommand extends Command {
         'Task cancelled successfully! You will not be prompted for a check-in.',
       );
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       return msg.reply(INTERNAL_ERROR);
     }
   }

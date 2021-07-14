@@ -5,6 +5,7 @@ import theme from './theme';
 import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
 import { DiscordTextChannel } from './types';
+import logger from '../lib/logger';
 
 enum MessageState {
   IDLE = 'idle',
@@ -73,7 +74,7 @@ export default class TaskCheckInMessenger {
           break;
         }
         case MessageState.IDLE: {
-          console.log('exiting message loop');
+          logger.info('exiting message loop');
           return; // exit message loop
         }
         case MessageState.ERROR: {
@@ -81,7 +82,7 @@ export default class TaskCheckInMessenger {
           return; // exit message loop
         }
         default: {
-          console.error('Unknown state received', this.state);
+          logger.error('Unknown state received', this.state);
           return; // exit message loop
         }
       }

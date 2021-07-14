@@ -1,4 +1,5 @@
 import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
+import logger from '../lib/logger';
 import { Settings } from '../models/SettingsModel';
 import { Task } from '../models/TaskModel';
 import { TimeoutError } from './errors';
@@ -92,6 +93,6 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
       await msg.react(emoji);
     }
   } catch (e) {
-    console.error('An emoji failed to react');
+    logger.error('An emoji failed to react');
   }
 };

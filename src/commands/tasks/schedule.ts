@@ -1,6 +1,7 @@
 import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { DateTime } from 'luxon';
+import logger from '../../lib/logger';
 import taskService from '../../services/task-service';
 import userService from '../../services/user-service';
 
@@ -103,8 +104,8 @@ class ScheduleCommand extends Command {
       dueDate: dueDate.toJSDate(),
     });
 
-    console.log('users', userService.getAll());
-    console.log('tasks', await taskService.getAll());
+    logger.info('users', userService.getAll());
+    logger.info('tasks', await taskService.getAll());
 
     return msg.reply('Task scheduled successfully!');
   }
