@@ -21,6 +21,7 @@ enum MessageState {
 
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
+// TODO refactor to extend messenger and make it look more like other ones
 export default class TaskCheckInMessenger {
   private task: Task;
   private channel: DiscordTextChannel;

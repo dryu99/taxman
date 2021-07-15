@@ -12,13 +12,12 @@ import { DiscordTextChannel } from './types';
 import logger from '../lib/logger';
 import { DateTime } from 'luxon';
 import EditCommand from '../commands/tasks/edit';
+import Messenger from './messengers/Messenger';
 
 enum MessageState {
   REACT_LEGEND = 'react_legend',
   EDIT_DEADLINE = 'edit_due_date',
   EDIT_DESCRIPTION = 'edit_description',
-  EDITING_ERROR = 'edit_error',
-  EDITING_TIMEOUT = 'timeout',
   CONFIRM = 'confirm',
   CANCEL = 'cancel',
   END = 'end',
@@ -27,17 +26,17 @@ enum MessageState {
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
 // TODO allow users to cancel mid edit
-export default class TaskEditMessenger {
+export default class TaskEditMessenger extends Messenger {
   private task: Task;
+  // private channel: DiscordTextChannel;
   private newTask: Task;
-  private channel: DiscordTextChannel;
   private commandMsg: Message;
   private state: MessageState;
 
   constructor(task: Task, channel: DiscordTextChannel, commandMsg: Message) {
+    super(channel);
     this.task = task;
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
-    this.channel = channel;
     this.commandMsg = commandMsg;
     this.state = MessageState.REACT_LEGEND;
   }
@@ -55,7 +54,7 @@ export default class TaskEditMessenger {
             break;
           }
           case MessageState.EDIT_DEADLINE: {
-            this.state = await this.handleDeadline();
+            this.state = await this.handleEditDeadline();
             break;
           }
           case MessageState.CONFIRM: {
@@ -78,7 +77,7 @@ export default class TaskEditMessenger {
       }
     } catch (e) {
       logger.error(e);
-      if (e instanceof TimeoutError) return this.sendTimeoutMsg();
+      if (e instanceof TimeoutError) await this.sendTimeoutMsg();
 
       // TODO maybe throw here? to let caller handle bad errors.
       //      I feel there are no expected bad errors. we should only really get timeout + editing error
@@ -147,7 +146,7 @@ export default class TaskEditMessenger {
     return MessageState.REACT_LEGEND;
   }
 
-  private async handleDeadline(): Promise<MessageState> {
+  private async handleEditDeadline(): Promise<MessageState> {
     const editDeadlineEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setTitle('Edit Deadline')
@@ -219,16 +218,5 @@ export default class TaskEditMessenger {
     await this.channel.send(cancelEmbed);
 
     return MessageState.END;
-  }
-
-  private async sendTimeoutMsg(): Promise<void> {
-    const timeoutEmbed = new MessageEmbed()
-      .setColor(theme.colors.error)
-      .setTitle(`Editing Timeout`)
-      .setDescription(
-        `You didn't respond in time... Use the \`$${EditCommand.DEFAULT_CMD_NAME}\` command to try again.`,
-      );
-
-    await this.channel.send(timeoutEmbed);
   }
 }

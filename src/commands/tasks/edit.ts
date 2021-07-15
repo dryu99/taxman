@@ -1,15 +1,7 @@
-import { MessageEmbed, TextChannel } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
-import theme from '../../bot/theme';
-import { Task, TaskStatus } from '../../models/TaskModel';
+import { TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
-import {
-  createTaskEmbed,
-  formatMention,
-  getUserInputReaction,
-  hasGracePeriodEnded,
-} from '../../bot/utils';
-import ScheduleCommand from './schedule';
+import { hasGracePeriodEnded } from '../../bot/utils';
 import settingsService from '../../services/settings-service';
 import {
   INTERNAL_ERROR,
