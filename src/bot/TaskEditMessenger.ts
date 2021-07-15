@@ -13,6 +13,7 @@ import logger from '../lib/logger';
 import { DateTime } from 'luxon';
 import EditCommand from '../commands/tasks/edit';
 import Messenger from './messengers/Messenger';
+import TaskWriteMessenger from './messengers/TaskWriteMessenger';
 
 enum MessageState {
   REACT_LEGEND = 'react_legend',
@@ -26,15 +27,14 @@ enum MessageState {
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
 // TODO allow users to cancel mid edit
-export default class TaskEditMessenger extends Messenger {
+export default class TaskEditMessenger extends TaskWriteMessenger {
   private task: Task;
-  // private channel: DiscordTextChannel;
   private newTask: Task;
   private commandMsg: Message;
   private state: MessageState;
 
   constructor(task: Task, channel: DiscordTextChannel, commandMsg: Message) {
-    super(channel);
+    super(channel, commandMsg.author.id);
     this.task = task;
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.commandMsg = commandMsg;
@@ -128,68 +128,14 @@ export default class TaskEditMessenger extends Messenger {
   }
 
   private async handleEditDescription(): Promise<MessageState> {
-    const editDescriptionEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setDescription(`Please provide a brief description of your task.`);
-    const editDescriptionMsg = await this.channel.send(editDescriptionEmbed);
-
-    // collect user input
-    const userInputMsg = await getUserInputMessage(
-      this.channel,
-      this.task.authorID,
-    );
-    const newDescription = userInputMsg.content;
-
-    // update task placeholder in memory
+    const newDescription = await this.promptDescription();
     this.newTask.name = newDescription;
-
     return MessageState.REACT_LEGEND;
   }
 
   private async handleEditDeadline(): Promise<MessageState> {
-    const editDeadlineEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle('Edit Deadline')
-      .setDescription(
-        `
-        Please provide the deadline for your task.
-        Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
-        `,
-      );
-    const editDeadlineMsg = await this.channel.send(editDeadlineEmbed);
-
-    // collect user input
-    let newDueDate: DateTime | undefined;
-    while (!newDueDate || !newDueDate.isValid) {
-      const userInputMsg = await getUserInputMessage(
-        this.channel,
-        this.task.authorID,
-      );
-
-      const newDueDateStr = userInputMsg.content;
-      const [date, time] = newDueDateStr.trim().split(' ') as [
-        string?,
-        string?,
-      ];
-
-      newDueDate = DateTime.fromISO(`${date}T${time}`, {
-        zone: 'America/Los_Angeles', // TODO change to use user input
-      });
-
-      if (!newDueDate.isValid) {
-        const editErrorEmbed = new MessageEmbed()
-          .setColor(theme.colors.error)
-          .setDescription(
-            `Please format your response like this: \`<YYYY-MM-DD> <HH:MM>\``,
-          );
-
-        await this.channel.send(editErrorEmbed);
-      }
-    }
-
-    // update task placeholder in memory
-    this.newTask.dueDate = newDueDate.toJSDate();
-
+    const newDueDate = await this.promptDeadline();
+    this.newTask.dueDate = newDueDate;
     return MessageState.REACT_LEGEND;
   }
 
@@ -206,7 +152,6 @@ export default class TaskEditMessenger extends Messenger {
     });
     if (!updatedTask)
       throw new Error(`Task with ID ${this.task.id} couldn't be updated.`); // TODO should prob move to task service?? maybe check out other uses of update and see how common this error could occur
-
     return MessageState.END;
   }
 
@@ -216,7 +161,6 @@ export default class TaskEditMessenger extends Messenger {
       .setDescription(`You cancelled editing! None of your edits were saved.`);
 
     await this.channel.send(cancelEmbed);
-
     return MessageState.END;
   }
 }
