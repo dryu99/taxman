@@ -7,7 +7,7 @@ import {
 } from 'discord.js';
 import logger from '../lib/logger';
 import { Settings } from '../models/SettingsModel';
-import { Task } from '../models/TaskModel';
+import { NewTask, Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import { TimeoutError } from './errors';
 import theme from './theme';
@@ -25,7 +25,7 @@ export const hasGracePeriodEnded = (task: Task, settings: Settings) => {
 };
 
 export const createTaskEmbed = (
-  task: Task,
+  task: NewTask,
   title?: string,
   description?: string,
 ): MessageEmbed => {

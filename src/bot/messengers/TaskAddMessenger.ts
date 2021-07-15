@@ -5,7 +5,7 @@ import { TimeoutError } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
-import { getUserInputMessage } from '../utils';
+import { createTaskEmbed, getUserInputMessage } from '../utils';
 import TaskPrompter from '../prompters/TaskPrompter';
 import taskService from '../../services/task-service';
 
@@ -14,27 +14,36 @@ enum MessageState {
   DEADLINE = 'deadline',
   STAKES = 'stakes',
   PARTNER = 'partner',
-  EDIT_LEGEND = 'legend',
+  EDIT_LEGEND = 'edit_legend',
   CONFIRM = 'confirm',
   CANCEL = 'cancel',
   END = 'end',
 }
 
+enum Workflow {
+  CREATE = 'create',
+  EDIT = 'edit',
+}
+
 export default class TaskAddMessenger extends Messenger {
-  private userID: string;
-  private newDescription: string;
-  private newDueDate: Date;
-  private newPartner: User;
-  private newStakes: number;
   private commandMsg: Message;
   private state: MessageState;
+  private workflow: Workflow;
   private prompter: TaskPrompter;
+
+  // task props we are collecting from user
+  private userID: string;
+  private description: string;
+  private dueDate: Date;
+  private partner: User;
+  private stakes: number;
 
   constructor(channel: DiscordTextChannel, commandMsg: Message) {
     super(channel);
     this.userID = commandMsg.author.id;
     this.commandMsg = commandMsg;
     this.state = MessageState.DESCRIPTION;
+    this.workflow = Workflow.CREATE;
     this.prompter = new TaskPrompter(channel, commandMsg.author.id);
 
     // commandMsg.author.id
@@ -45,11 +54,11 @@ export default class TaskAddMessenger extends Messenger {
       while (true) {
         switch (this.state) {
           case MessageState.DESCRIPTION: {
-            this.state = await this.handleAddDescription();
+            this.state = await this.handleDescription();
             break;
           }
           case MessageState.DEADLINE: {
-            this.state = await this.handleAddDeadline();
+            this.state = await this.handleDeadline();
             break;
           }
           case MessageState.PARTNER: {
@@ -61,6 +70,8 @@ export default class TaskAddMessenger extends Messenger {
             break;
           }
           case MessageState.EDIT_LEGEND: {
+            // once we reach this state, workflow becomes edit
+            this.workflow = Workflow.EDIT;
             this.state = await this.handleLegend();
             break;
           }
@@ -90,32 +101,47 @@ export default class TaskAddMessenger extends Messenger {
     }
   }
 
-  private async handleAddDescription(): Promise<MessageState> {
+  private async handleDescription(): Promise<MessageState> {
     const newDescription = await this.prompter.promptDescription();
-    this.newDescription = newDescription;
-    return MessageState.DEADLINE;
+    this.description = newDescription;
+    return this.workflow === Workflow.CREATE
+      ? MessageState.DEADLINE
+      : MessageState.EDIT_LEGEND;
   }
 
-  private async handleAddDeadline(): Promise<MessageState> {
+  private async handleDeadline(): Promise<MessageState> {
     const newDueDate = await this.prompter.promptDeadline();
-    this.newDueDate = newDueDate;
-    return MessageState.PARTNER;
+    this.dueDate = newDueDate;
+    return this.workflow === Workflow.CREATE
+      ? MessageState.PARTNER
+      : MessageState.EDIT_LEGEND;
   }
 
   private async handleAddPartner(): Promise<MessageState> {
     const newPartner = await this.prompter.promptPartner();
-    this.newPartner = newPartner;
-    return MessageState.STAKES;
+    this.partner = newPartner;
+    return this.workflow === Workflow.CREATE
+      ? MessageState.STAKES
+      : MessageState.EDIT_LEGEND;
   }
 
   private async handleAddStakes(): Promise<MessageState> {
     const newStakes = await this.prompter.promptStakes();
-    this.newStakes = newStakes;
+    this.stakes = newStakes;
     return MessageState.EDIT_LEGEND;
   }
 
   private async handleLegend(): Promise<MessageState> {
-    // TODO send task embed
+    // TODO validate props here?
+    const taskEmbed = createTaskEmbed({
+      name: this.description,
+      dueDate: this.dueDate,
+      cost: this.stakes,
+      authorID: this.userID,
+      partnerID: this.partner.id,
+      channelID: this.channel.id,
+    });
+    await this.channel.send(taskEmbed);
 
     const reaction = await this.prompter.promptReaction(
       'Task Confirmation',
@@ -137,7 +163,7 @@ export default class TaskAddMessenger extends Messenger {
     const emojiStr = reaction.emoji.name;
     if (emojiStr === '✏️') return MessageState.DESCRIPTION;
     if (emojiStr === '⏰') return MessageState.DEADLINE;
-    if (emojiStr === '👯') return MessageState.STAKES;
+    if (emojiStr === '👯') return MessageState.PARTNER;
     if (emojiStr === '💰') return MessageState.STAKES;
     if (emojiStr === '✅') return MessageState.CONFIRM;
     if (emojiStr === '❌') return MessageState.CANCEL;
@@ -153,11 +179,11 @@ export default class TaskAddMessenger extends Messenger {
     // save task in db
     await taskService.add({
       authorID: this.userID,
-      partnerID: this.newPartner.id,
+      partnerID: this.partner.id,
       channelID: this.channel.id,
-      cost: this.newStakes,
-      name: this.newDescription,
-      dueDate: this.newDueDate,
+      cost: this.stakes,
+      name: this.description,
+      dueDate: this.dueDate,
     });
 
     return MessageState.END;
