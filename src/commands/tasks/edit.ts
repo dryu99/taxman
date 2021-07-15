@@ -60,25 +60,21 @@ class EditCommand extends Command {
       if (task.authorID !== msg.author.id)
         return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
 
-      // TODO check if task is pending or not
       if (task.status !== TaskStatus.PENDING)
         return msg.reply(
-          `You can only edit pending tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
-        ); // TODO pending or upcoming?
+          `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
+        );
 
       if (hasGracePeriodEnded(task, settings))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
-      //
       const channel = await this.client.channels.fetch(task.channelID);
       if (!channel.isText()) return msg.reply('oops');
 
-      const taskEditMessenger = new TaskEditMessenger(task, channel);
+      const taskEditMessenger = new TaskEditMessenger(task, channel, msg);
       await taskEditMessenger.prompt();
 
-      // TODO finish this
-      //      make 2 embed, one with task data, one with reaction legend
-      return msg.reply(`hehe `);
+      return null;
     } catch (e) {
       logger.error(e); // TODO make logger utils
       if (e instanceof TimeoutError) return msg.reply(e.message);

@@ -1,8 +1,6 @@
-import { Message, MessageEmbed, TextChannel } from 'discord.js';
-import { CommandoClient } from 'discord.js-commando';
-import { Task, TaskStatus } from '../models/TaskModel';
+import { Message, MessageEmbed } from 'discord.js';
+import { Task } from '../models/TaskModel';
 import {
-  formatMention,
   getUserInputMessage,
   getUserInputReaction,
   createTaskEmbed,
@@ -13,7 +11,8 @@ import { TimeoutError } from './errors';
 import { DiscordTextChannel } from './types';
 import logger from '../lib/logger';
 import { DateTime } from 'luxon';
-// 2021-07-17 20:40
+import EditCommand from '../commands/tasks/edit';
+
 enum MessageState {
   REACT_LEGEND = 'react_legend',
   EDIT_DEADLINE = 'edit_due_date',
@@ -27,26 +26,23 @@ enum MessageState {
 
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
+// TODO allow users to cancel mid edit
 export default class TaskEditMessenger {
   private task: Task;
   private newTask: Task;
   private channel: DiscordTextChannel;
+  private commandMsg: Message;
   private state: MessageState;
 
-  // Messages that are always displayed
-  private taskMsg: Message;
-  private reactLegendMsg: Message;
-
-  constructor(task: Task, channel: DiscordTextChannel) {
+  constructor(task: Task, channel: DiscordTextChannel, commandMsg: Message) {
     this.task = task;
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.channel = channel;
+    this.commandMsg = commandMsg;
     this.state = MessageState.REACT_LEGEND;
   }
 
   public async prompt(): Promise<void> {
-    await this.sendPersistentMsgs();
-
     try {
       while (true) {
         switch (this.state) {
@@ -63,12 +59,10 @@ export default class TaskEditMessenger {
             break;
           }
           case MessageState.CONFIRM: {
-            // logger.info('exiting message loop');
             this.state = await this.handleConfirm();
             break;
           }
           case MessageState.CANCEL: {
-            // logger.info('exiting message loop');
             this.state = await this.handleCancel();
             break;
           }
@@ -94,12 +88,36 @@ export default class TaskEditMessenger {
   }
 
   private async handleReactLegend(): Promise<MessageState> {
+    const taskEmbed = createTaskEmbed(this.newTask);
+    // const taskMsg = await this.channel.send(taskEmbed);
+
+    this.commandMsg.reply(taskEmbed);
+
+    const reactLegendEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setTitle('Edit Task')
+      .setDescription(
+        // TODO rephrase this since you just copied it
+        // TODO also use the template literal lib suggested in docs to format nicely
+        `Your task is shown above! To edit your task, use one of the emojis on this message. 
+        Be sure to confirm your new task below.
+        (Note: you cannot edit the cost after initial task creation)
+
+        ✏️ Edit title
+        ⏰ Edit due date
+        
+        ✅ Confirm
+        ❌ Cancel
+        `,
+      );
+    const reactLegendMsg = await this.channel.send(reactLegendEmbed);
     const reaction = await getUserInputReaction(
-      this.reactLegendMsg,
+      reactLegendMsg,
       ['✏️', '⏰', '✅', '❌'],
       this.task.authorID,
     );
 
+    // remove reaction (looks cleaner that way)
     reaction.users.remove(this.task.authorID); // async
 
     const emojiStr = reaction.emoji.name;
@@ -113,17 +131,7 @@ export default class TaskEditMessenger {
   private async handleEditDescription(): Promise<MessageState> {
     const editDescriptionEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
-      .setTitle('Edit Description')
-      .setDescription(
-        `
-        Please provide a brief description of the task.
-        
-        Examples: 
-          - Go to gym
-          - Wake up early
-          - Work on project
-        `,
-      );
+      .setDescription(`Please provide a brief description of your task.`);
     const editDescriptionMsg = await this.channel.send(editDescriptionEmbed);
 
     // collect user input
@@ -135,14 +143,6 @@ export default class TaskEditMessenger {
 
     // update task placeholder in memory
     this.newTask.name = newDescription;
-
-    // cleanup sent msgs
-    editDescriptionMsg.delete(); // async
-    userInputMsg.delete(); // async
-
-    // update task embed
-    const newTaskEmbed = createTaskEmbed(this.newTask);
-    this.taskMsg.edit(newTaskEmbed);
 
     return MessageState.REACT_LEGEND;
   }
@@ -161,16 +161,11 @@ export default class TaskEditMessenger {
 
     // collect user input
     let newDueDate: DateTime | undefined;
-    let prevEditErrorMsg: Message | undefined; // we have this we can delete prev msg
-    let prevUserInputMsg: Message | undefined;
     while (!newDueDate || !newDueDate.isValid) {
       const userInputMsg = await getUserInputMessage(
         this.channel,
         this.task.authorID,
       );
-
-      if (prevEditErrorMsg) prevEditErrorMsg.delete(); // async
-      if (prevUserInputMsg) prevUserInputMsg.delete(); // async
 
       const newDueDateStr = userInputMsg.content;
       const [date, time] = newDueDateStr.trim().split(' ') as [
@@ -189,23 +184,12 @@ export default class TaskEditMessenger {
             `Please format your response like this: \`<YYYY-MM-DD> <HH:MM>\``,
           );
 
-        const editErrorMsg = await this.channel.send(editErrorEmbed);
-        prevEditErrorMsg = editErrorMsg;
+        await this.channel.send(editErrorEmbed);
       }
-      prevUserInputMsg = userInputMsg;
     }
 
     // update task placeholder in memory
     this.newTask.dueDate = newDueDate.toJSDate();
-
-    // cleanup sent msgs
-    editDeadlineMsg.delete(); // async
-    if (prevEditErrorMsg) prevEditErrorMsg.delete(); // async
-    if (prevUserInputMsg) prevUserInputMsg.delete(); // async
-
-    // update task embed
-    const newTaskEmbed = createTaskEmbed(this.newTask);
-    this.taskMsg.edit(newTaskEmbed);
 
     return MessageState.REACT_LEGEND;
   }
@@ -242,35 +226,9 @@ export default class TaskEditMessenger {
       .setColor(theme.colors.error)
       .setTitle(`Editing Timeout`)
       .setDescription(
-        `You didn't respond in time... Use the edit command to try again.`,
+        `You didn't respond in time... Use the \`$${EditCommand.DEFAULT_CMD_NAME}\` command to try again.`,
       );
 
     await this.channel.send(timeoutEmbed);
-  }
-
-  private async sendPersistentMsgs(): Promise<void> {
-    const taskEmbed = createTaskEmbed(this.task);
-    const taskMsg = await this.channel.send(taskEmbed);
-    this.taskMsg = taskMsg;
-
-    const reactLegendEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle('Edit Task')
-      .setDescription(
-        // TODO rephrase this since you just copied it
-        // TODO also use the template literal lib suggested in docs to format nicely
-        `Your task is shown above! To edit your task, use one of the emojis on this message. 
-        Be sure to confirm your new task below.
-        (Note: you cannot edit the cost after initial task creation)
-
-        ✏️ Edit title
-        ⏰ Edit due date
-        
-        ✅ Confirm
-        ❌ Cancel
-        `,
-      );
-    const reactLegendMsg = await this.channel.send(reactLegendEmbed);
-    this.reactLegendMsg = reactLegendMsg;
   }
 }

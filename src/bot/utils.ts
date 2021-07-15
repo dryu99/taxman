@@ -101,7 +101,7 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
       await msg.react(emoji);
     }
   } catch (e) {
-    logger.error('An emoji failed to react');
+    throw new Error('An emoji failed to react');
   }
 };
 

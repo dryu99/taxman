@@ -12,7 +12,7 @@ export enum TaskStatus {
 export interface NewTask {
   name: string; // tODO rename to title? description? make sure to change edit command embeds lol
   dueDate: Date; // TODO rename to deadline
-  cost: number; // TODO rename to payout?
+  cost: number; // TODO rename to payout? stakes?
   authorID: string; // TODO consider changing to userID or discordUserID
   partnerID: string;
   channelID: string;
