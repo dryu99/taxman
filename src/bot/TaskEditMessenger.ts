@@ -12,11 +12,12 @@ import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
 import { DiscordTextChannel } from './types';
 import logger from '../lib/logger';
-
+import { DateTime } from 'luxon';
+// 2021-07-17 20:40
 enum MessageState {
   REACT_LEGEND = 'react_legend',
-  EDIT_DUE_DATE = 'edit_due_date',
-  EDIT_TITLE = 'edit_title',
+  EDIT_DEADLINE = 'edit_due_date',
+  EDIT_DESCRIPTION = 'edit_description',
   EDITING_ERROR = 'edit_error',
   EDITING_TIMEOUT = 'timeout',
   CONFIRM = 'confirm',
@@ -53,8 +54,12 @@ export default class TaskEditMessenger {
             this.state = await this.handleReactLegend();
             break;
           }
-          case MessageState.EDIT_TITLE: {
-            this.state = await this.handleEditTitle();
+          case MessageState.EDIT_DESCRIPTION: {
+            this.state = await this.handleEditDescription();
+            break;
+          }
+          case MessageState.EDIT_DEADLINE: {
+            this.state = await this.handleDeadline();
             break;
           }
           case MessageState.CONFIRM: {
@@ -98,14 +103,14 @@ export default class TaskEditMessenger {
     reaction.users.remove(this.task.authorID); // async
 
     const emojiStr = reaction.emoji.name;
-    if (emojiStr === '✏️') return MessageState.EDIT_TITLE;
-    if (emojiStr === '⏰') return MessageState.EDIT_DUE_DATE;
+    if (emojiStr === '✏️') return MessageState.EDIT_DESCRIPTION;
+    if (emojiStr === '⏰') return MessageState.EDIT_DEADLINE;
     if (emojiStr === '✅') return MessageState.CONFIRM;
     if (emojiStr === '❌') return MessageState.CANCEL;
     throw new Error('Received unexpected emoji.');
   }
 
-  private async handleEditTitle(): Promise<MessageState> {
+  private async handleEditDescription(): Promise<MessageState> {
     const editDescriptionEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setTitle('Edit Description')
@@ -142,9 +147,72 @@ export default class TaskEditMessenger {
     return MessageState.REACT_LEGEND;
   }
 
+  private async handleDeadline(): Promise<MessageState> {
+    const editDeadlineEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setTitle('Edit Deadline')
+      .setDescription(
+        `
+        Please provide the deadline for your task.
+        Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
+        `,
+      );
+    const editDeadlineMsg = await this.channel.send(editDeadlineEmbed);
+
+    // collect user input
+    let newDueDate: DateTime | undefined;
+    let prevEditErrorMsg: Message | undefined; // we have this we can delete prev msg
+    let prevUserInputMsg: Message | undefined;
+    while (!newDueDate || !newDueDate.isValid) {
+      const userInputMsg = await getUserInputMessage(
+        this.channel,
+        this.task.authorID,
+      );
+
+      if (prevEditErrorMsg) prevEditErrorMsg.delete(); // async
+      if (prevUserInputMsg) prevUserInputMsg.delete(); // async
+
+      const newDueDateStr = userInputMsg.content;
+      const [date, time] = newDueDateStr.trim().split(' ') as [
+        string?,
+        string?,
+      ];
+
+      newDueDate = DateTime.fromISO(`${date}T${time}`, {
+        zone: 'America/Los_Angeles', // TODO change to use user input
+      });
+
+      if (!newDueDate.isValid) {
+        const editErrorEmbed = new MessageEmbed()
+          .setColor(theme.colors.error)
+          .setDescription(
+            `Please format your response like this: \`<YYYY-MM-DD> <HH:MM>\``,
+          );
+
+        const editErrorMsg = await this.channel.send(editErrorEmbed);
+        prevEditErrorMsg = editErrorMsg;
+      }
+      prevUserInputMsg = userInputMsg;
+    }
+
+    // update task placeholder in memory
+    this.newTask.dueDate = newDueDate.toJSDate();
+
+    // cleanup sent msgs
+    editDeadlineMsg.delete(); // async
+    if (prevEditErrorMsg) prevEditErrorMsg.delete(); // async
+    if (prevUserInputMsg) prevUserInputMsg.delete(); // async
+
+    // update task embed
+    const newTaskEmbed = createTaskEmbed(this.newTask);
+    this.taskMsg.edit(newTaskEmbed);
+
+    return MessageState.REACT_LEGEND;
+  }
+
   private async handleConfirm(): Promise<MessageState> {
     const confirmEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
+      .setColor(theme.colors.success)
       .setDescription(`You finished editing! Your edits have been saved.`);
     await this.channel.send(confirmEmbed);
 
