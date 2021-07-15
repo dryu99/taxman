@@ -28,6 +28,7 @@ enum MessageState {
 // TODO partner confirm embed contains redundant info... make it smaller
 export default class TaskEditMessenger {
   private task: Task;
+  private newTask: Task;
   private channel: DiscordTextChannel;
   private state: MessageState;
 
@@ -37,6 +38,7 @@ export default class TaskEditMessenger {
 
   constructor(task: Task, channel: DiscordTextChannel) {
     this.task = task;
+    this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.channel = channel;
     this.state = MessageState.REACT_LEGEND;
   }
@@ -48,11 +50,21 @@ export default class TaskEditMessenger {
       while (true) {
         switch (this.state) {
           case MessageState.REACT_LEGEND: {
-            this.state = await this.promptReactLegend();
+            this.state = await this.handleReactLegend();
             break;
           }
           case MessageState.EDIT_TITLE: {
-            this.state = await this.promptEditTitle();
+            this.state = await this.handleEditTitle();
+            break;
+          }
+          case MessageState.CONFIRM: {
+            // logger.info('exiting message loop');
+            this.state = await this.handleConfirm();
+            break;
+          }
+          case MessageState.CANCEL: {
+            // logger.info('exiting message loop');
+            this.state = await this.handleCancel();
             break;
           }
           case MessageState.END: {
@@ -76,13 +88,11 @@ export default class TaskEditMessenger {
     }
   }
 
-  // TODO have to immediately remove reaction
-  private async promptReactLegend(): Promise<MessageState> {
+  private async handleReactLegend(): Promise<MessageState> {
     const reaction = await getUserInputReaction(
       this.reactLegendMsg,
       ['✏️', '⏰', '✅', '❌'],
       this.task.authorID,
-      5,
     );
 
     reaction.users.remove(this.task.authorID); // async
@@ -95,7 +105,7 @@ export default class TaskEditMessenger {
     throw new Error('Received unexpected emoji.');
   }
 
-  private async promptEditTitle(): Promise<MessageState> {
+  private async handleEditTitle(): Promise<MessageState> {
     const editDescriptionEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setTitle('Edit Description')
@@ -118,38 +128,56 @@ export default class TaskEditMessenger {
     );
     const newDescription = userInputMsg.content;
 
-    // update task
-    const updatedTask = await taskService.update(this.task.id, {
-      name: newDescription,
-    });
-    if (!updatedTask)
-      throw new Error(`Task with ID ${this.task.id} couldn't be updated.`); // TODO should prob move to task service?? maybe check out other uses of update and see how common this error could occur
-    this.task = updatedTask;
+    // update task placeholder in memory
+    this.newTask.name = newDescription;
 
     // cleanup sent msgs
-    await editDescriptionMsg.delete();
-    await userInputMsg.delete();
+    editDescriptionMsg.delete(); // async
+    userInputMsg.delete(); // async
 
     // update task embed
-    const newTaskEmbed = createTaskEmbed({
-      ...this.task,
-      name: newDescription,
-    });
+    const newTaskEmbed = createTaskEmbed(this.newTask);
     this.taskMsg.edit(newTaskEmbed);
 
-    // go to next msger state
     return MessageState.REACT_LEGEND;
   }
 
+  private async handleConfirm(): Promise<MessageState> {
+    const confirmEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(`You finished editing! Your edits have been saved.`);
+    await this.channel.send(confirmEmbed);
+
+    // update task in db
+    const updatedTask = await taskService.update(this.task.id, {
+      name: this.newTask.name, // TODO prob more programmatic way to do this (have to manually add here every time we create new edit option)
+      dueDate: this.newTask.dueDate,
+    });
+    if (!updatedTask)
+      throw new Error(`Task with ID ${this.task.id} couldn't be updated.`); // TODO should prob move to task service?? maybe check out other uses of update and see how common this error could occur
+
+    return MessageState.END;
+  }
+
+  private async handleCancel(): Promise<MessageState> {
+    const cancelEmbed = new MessageEmbed()
+      .setColor(theme.colors.error)
+      .setDescription(`You cancelled editing! None of your edits were saved.`);
+
+    await this.channel.send(cancelEmbed);
+
+    return MessageState.END;
+  }
+
   private async sendTimeoutMsg(): Promise<void> {
-    const embed = new MessageEmbed()
+    const timeoutEmbed = new MessageEmbed()
       .setColor(theme.colors.error)
       .setTitle(`Editing Timeout`)
       .setDescription(
         `You didn't respond in time... Use the edit command to try again.`,
       );
 
-    await this.channel.send(embed);
+    await this.channel.send(timeoutEmbed);
   }
 
   private async sendPersistentMsgs(): Promise<void> {
