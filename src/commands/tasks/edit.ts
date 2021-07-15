@@ -69,7 +69,7 @@ class EditCommand extends Command {
       return null;
     } catch (e) {
       logger.error(e); // TODO make logger utils
-      if (e instanceof TimeoutError) return msg.reply(e.message);
+      if (e instanceof TimeoutError) return msg.reply(e.message); // tODO prob dont need to handle here can handle in messenger
       return msg.reply(INTERNAL_ERROR);
     }
   }
