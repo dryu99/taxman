@@ -4,7 +4,7 @@ import path from 'path';
 import logger from '../lib/logger';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
-import TaskCheckInMessenger from './TaskCheckInMessenger';
+import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
 
 export default class Bot {
   static NAME: string = 'TaxBot';

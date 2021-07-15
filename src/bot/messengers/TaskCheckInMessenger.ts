@@ -1,11 +1,11 @@
 import { MessageEmbed } from 'discord.js';
-import { Task, TaskStatus } from '../models/TaskModel';
-import { formatMention, getUserInputReaction } from './utils';
-import theme from './theme';
-import taskService from '../services/task-service';
-import { TimeoutError } from './errors';
-import { DiscordTextChannel } from './types';
-import logger from '../lib/logger';
+import { Task, TaskStatus } from '../../models/TaskModel';
+import { formatMention, getUserInputReaction } from '../utils';
+import theme from '../theme';
+import taskService from '../../services/task-service';
+import { TimeoutError } from '../errors';
+import { DiscordTextChannel } from '../types';
+import logger from '../../lib/logger';
 
 enum MessageState {
   IDLE = 'idle',

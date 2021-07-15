@@ -1,12 +1,12 @@
 import { Message, MessageEmbed } from 'discord.js';
-import logger from '../lib/logger';
-import { Task } from '../models/TaskModel';
-import { TimeoutError } from './errors';
-import Messenger from './messengers/Messenger';
-import TaskWriteMessenger from './messengers/TaskWriteMessenger';
-import theme from './theme';
-import { DiscordTextChannel } from './types';
-import { getUserInputMessage } from './utils';
+import logger from '../../lib/logger';
+import { Task } from '../../models/TaskModel';
+import { TimeoutError } from '../errors';
+import Messenger from './Messenger';
+import TaskWriteMessenger from './TaskWriteMessenger';
+import theme from '../theme';
+import { DiscordTextChannel } from '../types';
+import { getUserInputMessage } from '../utils';
 
 enum MessageState {
   ADD_DESCRIPTION = 'add_description',
