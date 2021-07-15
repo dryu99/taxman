@@ -6,6 +6,8 @@ import logger from './lib/logger';
 dotenv.config();
 
 // TODO give embeds and msg variables more specific names
+// TODO make development db local lol
+// TODO figure out way to handle messenger try catchs the same way (wrap with a fn? or wrap switch with try catch)
 const main = async () => {
   // Setup db
   try {

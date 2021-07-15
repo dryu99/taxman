@@ -52,8 +52,14 @@ const add = async (newTask: NewTask): Promise<Task> => {
   return savedTask.toJSON();
 };
 
-const update = async (taskID: string, newProps: Partial<Task>) => {
-  await TaskModel.updateOne({ _id: taskID }, { $set: newProps });
+const update = async (
+  taskID: string,
+  newProps: Partial<Task>,
+): Promise<Task | undefined> => {
+  const updatedTask = await TaskModel.findByIdAndUpdate(taskID, newProps, {
+    new: true,
+  });
+  return updatedTask?.toJSON();
 };
 
 const taskService = {

@@ -1,7 +1,12 @@
-import { MessageEmbed, TextChannel } from 'discord.js';
+import { Message, MessageEmbed, TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import { Task, TaskStatus } from '../models/TaskModel';
-import { formatMention, getReaction } from './utils';
+import {
+  formatMention,
+  getUserMessageInput as getUserInputMessage,
+  getReaction,
+  createTaskEmbed,
+} from './utils';
 import theme from './theme';
 import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
@@ -9,7 +14,7 @@ import { DiscordTextChannel } from './types';
 import logger from '../lib/logger';
 
 enum MessageState {
-  START = 'start',
+  REACT_LEGEND = 'react_legend',
   EDIT_DUE_DATE = 'edit_due_date',
   EDIT_TITLE = 'edit_title',
   EDITING_ERROR = 'edit_error',
@@ -26,19 +31,45 @@ export default class TaskEditMessenger {
   private task: Task;
   private channel: DiscordTextChannel;
   private state: MessageState;
+  private taskMsg: Message;
+  private reactLegendMsg: Message;
 
   constructor(task: Task, channel: DiscordTextChannel) {
     this.task = task;
     this.channel = channel;
-    this.state = MessageState.START;
+    this.state = MessageState.REACT_LEGEND;
   }
 
   // TODO consider making state of type { type: MessageState, payload: any }
   //      may be more maintainable
   public async prompt() {
+    const taskEmbed = createTaskEmbed(this.task);
+    const taskMsg = await this.channel.send(taskEmbed);
+    this.taskMsg = taskMsg;
+
+    const reactLegendEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setTitle('Edit Task')
+      .setDescription(
+        // TODO rephrase this since you just copied it
+        // TODO also use the template literal lib suggested in docs to format nicely
+        `Your task is shown above! To edit your task, use one of the emojis on this message. 
+        Be sure to confirm your new task below.
+        (Note: you cannot edit the cost after initial task creation)
+
+        ✏️ Edit title
+        ⏰ Edit due date
+        
+        ✅ Confirm
+        ❌ Cancel
+        `,
+      );
+    const reactLegendMsg = await this.channel.send(reactLegendEmbed);
+    this.reactLegendMsg = reactLegendMsg;
+
     while (true) {
       switch (this.state) {
-        case MessageState.START: {
+        case MessageState.REACT_LEGEND: {
           this.state = await this.promptReactLegend();
           break;
         }
@@ -59,29 +90,9 @@ export default class TaskEditMessenger {
   }
 
   private async promptReactLegend(): Promise<MessageState> {
-    const embed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle('Edit Task')
-      .setDescription(
-        // TODO rephrase this since you just copied it
-        // TODO also use the template literal lib suggested in docs to format nicely
-        `Your task is shown above! To edit your task, use one of the emojis on this message. 
-        Be sure to confirm your new task below.
-        (Note: you cannot edit the cost after initial task creation)
-
-        ✏️ Edit title
-        ⏰ Edit due date
-        
-        ✅ Confirm
-        ❌ Cancel
-        `,
-      );
-
-    const msg = await this.channel.send(embed);
-
     try {
       const reaction = await getReaction(
-        msg,
+        this.reactLegendMsg,
         ['✏️', '⏰', '✅', '❌'],
         this.task.authorID,
         5,
@@ -100,20 +111,53 @@ export default class TaskEditMessenger {
   }
 
   private async promptEditTitle(): Promise<MessageState> {
-    const embed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle('Edit Title')
-      .setDescription(
-        `        
+    try {
+      const embed = new MessageEmbed()
+        .setColor(theme.colors.primary.main)
+        .setTitle('Edit Description')
+        .setDescription(
+          `
+        Please provide a brief description of the task.
+        
         Examples: 
           - Go to gym
           - Wake up early
           - Work on project
         `,
-      );
+        );
+      const editDescriptionEmbed = await this.channel.send(embed);
 
-    // TODO have to figure out how to collect text
-    const msg = await this.channel.send(embed);
-    return MessageState.END;
+      // collect user input
+      const userInputMsg = await getUserInputMessage(
+        this.channel,
+        this.task.authorID,
+      );
+      const newDescription = userInputMsg.content;
+      logger.info('newTitle', userInputMsg.content);
+
+      // update task
+      const updatedTask = await taskService.update(this.task.id, {
+        name: newDescription,
+      });
+      if (!updatedTask) return MessageState.ERROR; // TODO shit we should pass msg payload here or sth
+      this.task = updatedTask;
+
+      // cleanup sent msgs
+      await editDescriptionEmbed.delete();
+      await userInputMsg.delete();
+
+      // update task embed
+      const newTaskEmbed = createTaskEmbed({
+        ...this.task,
+        name: newDescription,
+      });
+      this.taskMsg.edit(newTaskEmbed);
+
+      // go to next msger state
+      return MessageState.REACT_LEGEND;
+    } catch (e) {
+      if (e instanceof TimeoutError) return MessageState.EDITING_TIMEOUT;
+      return MessageState.ERROR;
+    }
   }
 }

@@ -1,9 +1,17 @@
-import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
+import {
+  Channel,
+  Message,
+  MessageEmbed,
+  MessageReaction,
+  User,
+} from 'discord.js';
 import logger from '../lib/logger';
 import { Settings } from '../models/SettingsModel';
 import { Task } from '../models/TaskModel';
+import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import { TimeoutError } from './errors';
 import theme from './theme';
+import { DiscordTextChannel } from './types';
 
 export const formatMention = (id: string) => {
   return `<@${id}>`;
@@ -94,5 +102,29 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
     }
   } catch (e) {
     logger.error('An emoji failed to react');
+  }
+};
+
+export const getUserMessageInput = async (
+  channel: DiscordTextChannel,
+  filterUserID: string,
+): Promise<Message> => {
+  try {
+    const collectedMsgs = await channel.awaitMessages(
+      (m) => filterUserID === m.author.id,
+      {
+        time: DEFAULT_INPUT_AWAIT_TIME_MIN * 60 * 1000,
+        max: 1,
+        errors: ['time'],
+      },
+    );
+
+    const collectedMsg = collectedMsgs.first();
+    if (!collectedMsg)
+      throw new Error("Internal Bot Error: Message couldn't be collected."); // TODO handle this error better (look at edit command caller)
+
+    return collectedMsg;
+  } catch (e) {
+    throw new TimeoutError('You took too long to react, cancelling command.');
   }
 };

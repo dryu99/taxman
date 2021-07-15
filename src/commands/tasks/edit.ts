@@ -69,10 +69,6 @@ class EditCommand extends Command {
       if (hasGracePeriodEnded(task, settings))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
-      // send task embed
-      const taskEmbed = createTaskEmbed(task);
-      await msg.reply(taskEmbed);
-
       //
       const channel = await this.client.channels.fetch(task.channelID);
       if (!channel.isText()) return msg.reply('oops');
