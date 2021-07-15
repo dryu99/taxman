@@ -3,8 +3,8 @@ import { CommandoClient } from 'discord.js-commando';
 import { Task, TaskStatus } from '../models/TaskModel';
 import {
   formatMention,
-  getUserMessageInput as getUserInputMessage,
-  getReaction,
+  getUserInputMessage,
+  getUserInputReaction,
   createTaskEmbed,
 } from './utils';
 import theme from './theme';
@@ -31,6 +31,8 @@ export default class TaskEditMessenger {
   private task: Task;
   private channel: DiscordTextChannel;
   private state: MessageState;
+
+  // Messages that are always displayed
   private taskMsg: Message;
   private reactLegendMsg: Message;
 
@@ -91,7 +93,7 @@ export default class TaskEditMessenger {
 
   private async promptReactLegend(): Promise<MessageState> {
     try {
-      const reaction = await getReaction(
+      const reaction = await getUserInputReaction(
         this.reactLegendMsg,
         ['✏️', '⏰', '✅', '❌'],
         this.task.authorID,
@@ -133,7 +135,6 @@ export default class TaskEditMessenger {
         this.task.authorID,
       );
       const newDescription = userInputMsg.content;
-      logger.info('newTitle', userInputMsg.content);
 
       // update task
       const updatedTask = await taskService.update(this.task.id, {

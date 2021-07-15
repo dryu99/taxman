@@ -66,7 +66,7 @@ export const createTaskEmbed = (
   return embed;
 };
 
-export const getReaction = async (
+export const getUserInputReaction = async (
   msg: Message,
   emojis: string[],
   reactorUserID: string,
@@ -105,7 +105,7 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
   }
 };
 
-export const getUserMessageInput = async (
+export const getUserInputMessage = async (
   channel: DiscordTextChannel,
   filterUserID: string,
 ): Promise<Message> => {

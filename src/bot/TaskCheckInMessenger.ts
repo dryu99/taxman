@@ -1,6 +1,6 @@
 import { MessageEmbed } from 'discord.js';
 import { Task, TaskStatus } from '../models/TaskModel';
-import { formatMention, getReaction } from './utils';
+import { formatMention, getUserInputReaction } from './utils';
 import theme from './theme';
 import taskService from '../services/task-service';
 import { TimeoutError } from './errors';
@@ -121,7 +121,7 @@ export default class TaskCheckInMessenger {
     const msg = await this.channel.send(embed);
 
     try {
-      const reaction = await getReaction(
+      const reaction = await getUserInputReaction(
         msg,
         ['👍', '👎'],
         this.task.authorID,
@@ -172,7 +172,7 @@ export default class TaskCheckInMessenger {
     const msg = await this.channel.send(embed);
 
     try {
-      const reaction = await getReaction(
+      const reaction = await getUserInputReaction(
         msg,
         ['👍', '👎'],
         this.task.partnerID,

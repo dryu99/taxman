@@ -6,7 +6,7 @@ import taskService from '../../services/task-service';
 import {
   createTaskEmbed,
   formatMention,
-  getReaction,
+  getUserInputReaction,
   hasGracePeriodEnded,
 } from '../../bot/utils';
 import ScheduleCommand from './schedule';
