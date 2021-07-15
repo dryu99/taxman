@@ -6,7 +6,8 @@ import taskService from '../../services/task-service';
 import { TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
-import TaskWriteMessenger from '../messengers/TaskWriteMessenger';
+import Messenger from './Messenger';
+import TaskPrompter from '../prompters/TaskPrompter';
 
 enum MessageState {
   REACT_LEGEND = 'react_legend',
@@ -20,18 +21,20 @@ enum MessageState {
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
 // TODO allow users to cancel mid edit
-export default class TaskEditMessenger extends TaskWriteMessenger {
+export default class TaskEditMessenger extends Messenger {
   private task: Task;
   private newTask: Task;
   private commandMsg: Message;
   private state: MessageState;
+  private prompter: TaskPrompter;
 
   constructor(task: Task, channel: DiscordTextChannel, commandMsg: Message) {
-    super(channel, commandMsg.author.id);
+    super(channel);
     this.task = task;
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.commandMsg = commandMsg;
     this.state = MessageState.REACT_LEGEND;
+    this.prompter = new TaskPrompter(channel, commandMsg.author.id);
   }
 
   public async prompt(): Promise<void> {
@@ -121,13 +124,13 @@ export default class TaskEditMessenger extends TaskWriteMessenger {
   }
 
   private async handleEditDescription(): Promise<MessageState> {
-    const newDescription = await this.promptDescription();
+    const newDescription = await this.prompter.promptDescription();
     this.newTask.name = newDescription;
     return MessageState.REACT_LEGEND;
   }
 
   private async handleEditDeadline(): Promise<MessageState> {
-    const newDueDate = await this.promptDeadline();
+    const newDueDate = await this.prompter.promptDeadline();
     this.newTask.dueDate = newDueDate;
     return MessageState.REACT_LEGEND;
   }

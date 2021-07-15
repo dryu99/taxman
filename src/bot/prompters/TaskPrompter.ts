@@ -1,21 +1,19 @@
-import { Message, MessageEmbed, MessageReaction } from 'discord.js';
+import { MessageReaction, MessageEmbed } from 'discord.js';
 import { DateTime } from 'luxon';
-import EditCommand from '../../commands/tasks/edit';
-import { Task } from '../../models/TaskModel';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
-import { getUserInputMessage, getUserInputReaction } from '../utils';
-import Messenger from './Messenger';
+import { getUserInputReaction, getUserInputMessage } from '../utils';
 
-export default abstract class TaskWriteMessenger extends Messenger {
-  protected userID: string;
+export default class TaskPrompter {
+  private channel: DiscordTextChannel;
+  private userID: string;
 
   constructor(channel: DiscordTextChannel, userID: string) {
-    super(channel);
+    this.channel = channel;
     this.userID = userID;
   }
 
-  protected async promptReactLegend(): Promise<MessageReaction> {
+  public async promptReactLegend(): Promise<MessageReaction> {
     const reactLegendEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setTitle('Edit Task')
@@ -45,7 +43,7 @@ export default abstract class TaskWriteMessenger extends Messenger {
     return reaction;
   }
 
-  protected async promptDescription(): Promise<string> {
+  public async promptDescription(): Promise<string> {
     const descriptionEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setDescription(`Please provide a brief description of your task.`);
@@ -55,7 +53,7 @@ export default abstract class TaskWriteMessenger extends Messenger {
     return userInputMsg.content;
   }
 
-  protected async promptDeadline(): Promise<Date> {
+  public async promptDeadline(): Promise<Date> {
     const deadlineEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setTitle('Edit Deadline')

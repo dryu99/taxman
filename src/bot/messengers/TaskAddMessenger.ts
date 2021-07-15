@@ -3,10 +3,10 @@ import logger from '../../lib/logger';
 import { Task } from '../../models/TaskModel';
 import { TimeoutError } from '../errors';
 import Messenger from './Messenger';
-import TaskWriteMessenger from './TaskWriteMessenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import { getUserInputMessage } from '../utils';
+import TaskPrompter from '../prompters/TaskPrompter';
 
 enum MessageState {
   ADD_DESCRIPTION = 'add_description',
@@ -19,16 +19,20 @@ enum MessageState {
   END = 'end',
 }
 
-export default class TaskAddMessenger extends TaskWriteMessenger {
+export default class TaskAddMessenger extends Messenger {
   private newTask: Partial<Task>;
   private commandMsg: Message;
   private state: MessageState;
+  private prompter: TaskPrompter;
 
   constructor(channel: DiscordTextChannel, commandMsg: Message) {
-    super(channel, commandMsg.author.id);
+    super(channel);
     this.newTask = {};
     this.commandMsg = commandMsg;
     this.state = MessageState.ADD_DESCRIPTION;
+    this.prompter = new TaskPrompter(channel, commandMsg.author.id);
+
+    // commandMsg.author.id
   }
 
   public async prompt(): Promise<void> {
@@ -82,17 +86,13 @@ export default class TaskAddMessenger extends TaskWriteMessenger {
   }
 
   private async handleAddDescription(): Promise<MessageState> {
-    const newDescription = await this.promptDescription();
-
-    // update task placeholder in memory
+    const newDescription = await this.prompter.promptDescription();
     this.newTask.name = newDescription;
     return MessageState.ADD_DEADLINE;
   }
 
   private async handleAddDeadline(): Promise<MessageState> {
-    const newDueDate = await this.promptDeadline();
-
-    // update task placeholder in memory
+    const newDueDate = await this.prompter.promptDeadline();
     this.newTask.dueDate = newDueDate;
     return MessageState.ADD_PARTNER;
   }

@@ -10,7 +10,7 @@ import {
   TimeoutError,
 } from '../../bot/errors';
 import ListCommand from './list';
-import TaskEditMessenger from '../../bot/TaskEditMessenger';
+import TaskEditMessenger from '../../bot/messengers/TaskEditMessenger';
 import logger from '../../lib/logger';
 
 enum EditCommandArgs {
