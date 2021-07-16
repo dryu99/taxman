@@ -7,31 +7,31 @@ import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import { createTaskEmbed, getUserInputMessage } from '../utils';
 import TaskPrompter, {
-  TaskLegendAction,
+  EditAction,
   TaskLegendType,
 } from '../prompters/TaskPrompter';
 import taskService from '../../services/task-service';
 
 enum MessageState {
-  DESCRIPTION = 'description',
-  DEADLINE = 'deadline',
-  STAKES = 'stakes',
-  PARTNER = 'partner',
-  EDIT_LEGEND = 'edit_legend',
-  CONFIRM = 'confirm',
-  CANCEL = 'cancel',
+  GET_DESCRIPTION = 'description',
+  GET_DEADLINE = 'deadline',
+  GET_STAKES = 'stakes',
+  GET_PARTNER = 'partner',
+  CHOOSE_EDIT = 'edit_legend',
   END = 'end',
 }
 
-enum Workflow {
+enum MessageWorkflow {
   CREATE = 'create',
   EDIT = 'edit',
 }
 
 export default class TaskAddMessenger extends Messenger {
+  static TIMEOUT_MSG: string = 'This command timed out, cancelling command';
+
   private commandMsg: Message;
   private state: MessageState;
-  private workflow: Workflow;
+  private workflow: MessageWorkflow;
   private prompter: TaskPrompter;
 
   // task props we are collecting from user
@@ -45,120 +45,143 @@ export default class TaskAddMessenger extends Messenger {
     super(channel);
     this.userID = commandMsg.author.id;
     this.commandMsg = commandMsg;
-    this.state = MessageState.DESCRIPTION;
-    this.workflow = Workflow.CREATE;
+    this.state = MessageState.GET_DESCRIPTION;
+    this.workflow = MessageWorkflow.CREATE;
     this.prompter = new TaskPrompter(channel, commandMsg.author.id);
   }
 
   public async prompt(): Promise<void> {
-    try {
-      while (true) {
-        switch (this.state) {
-          case MessageState.DESCRIPTION: {
-            this.state = await this.handleDescription();
-            break;
-          }
-          case MessageState.DEADLINE: {
-            this.state = await this.handleDeadline();
-            break;
-          }
-          case MessageState.PARTNER: {
-            this.state = await this.handleAddPartner();
-            break;
-          }
-          case MessageState.STAKES: {
-            this.state = await this.handleAddStakes();
-            break;
-          }
-          case MessageState.EDIT_LEGEND: {
-            // once we reach this state, workflow becomes edit
-            this.workflow = Workflow.EDIT;
-            this.state = await this.handleLegend();
-            break;
-          }
-          case MessageState.CONFIRM: {
-            this.state = await this.handleConfirm();
-            break;
-          }
-          case MessageState.CANCEL: {
-            this.state = await this.handleCancel();
-            break;
-          }
-          case MessageState.END: {
-            logger.info('exiting message loop');
-            return;
-          }
-          default: {
-            logger.error('Unknown state received', this.state);
-            return; // exit message loop
-          }
-        }
+    while (true) {
+      switch (this.state) {
+        case MessageState.GET_DESCRIPTION:
+          this.state = await this.handleCollectDescription();
+          break;
+        case MessageState.GET_DEADLINE:
+          this.state = await this.handleCollectDeadline();
+          break;
+        case MessageState.GET_PARTNER:
+          this.state = await this.handleCollectPartner();
+          break;
+        case MessageState.GET_STAKES:
+          this.state = await this.handleCollectStakes();
+          break;
+        case MessageState.CHOOSE_EDIT:
+          // once we reach this state, workflow becomes edit
+          this.workflow = MessageWorkflow.EDIT;
+          this.state = await this.handleChooseEdit();
+          break;
+        case MessageState.END:
+          logger.info('exiting message loop');
+          return;
+        default:
+          logger.error('Unknown state received', this.state);
+          return; // exit message loop
       }
-    } catch (e) {
-      logger.error(e);
-      if (e instanceof TimeoutError) await this.sendTimeoutMsg();
-
-      return;
     }
   }
 
-  private async handleDescription(): Promise<MessageState> {
-    const newDescription = await this.prompter.promptDescription();
-    this.description = newDescription;
-    return this.workflow === Workflow.CREATE
-      ? MessageState.DEADLINE
-      : MessageState.EDIT_LEGEND;
+  private async handleCollectDescription(): Promise<MessageState> {
+    try {
+      const newDescription = await this.prompter.promptDescription();
+      this.description = newDescription;
+      return this.workflow === MessageWorkflow.CREATE
+        ? MessageState.GET_DEADLINE
+        : MessageState.CHOOSE_EDIT;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleDeadline(): Promise<MessageState> {
-    const newDueDate = await this.prompter.promptDeadline();
-    this.dueDate = newDueDate;
-    return this.workflow === Workflow.CREATE
-      ? MessageState.PARTNER
-      : MessageState.EDIT_LEGEND;
+  private async handleCollectDeadline(): Promise<MessageState> {
+    try {
+      const newDueDate = await this.prompter.promptDeadline();
+      this.dueDate = newDueDate;
+      return this.workflow === MessageWorkflow.CREATE
+        ? MessageState.GET_PARTNER
+        : MessageState.CHOOSE_EDIT;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleAddPartner(): Promise<MessageState> {
-    const newPartner = await this.prompter.promptPartner();
-    this.partner = newPartner;
-    return this.workflow === Workflow.CREATE
-      ? MessageState.STAKES
-      : MessageState.EDIT_LEGEND;
+  private async handleCollectPartner(): Promise<MessageState> {
+    try {
+      const newPartner = await this.prompter.promptPartner();
+      this.partner = newPartner;
+      return this.workflow === MessageWorkflow.CREATE
+        ? MessageState.GET_STAKES
+        : MessageState.CHOOSE_EDIT;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleAddStakes(): Promise<MessageState> {
-    const newStakes = await this.prompter.promptStakes();
-    this.stakes = newStakes;
-    return MessageState.EDIT_LEGEND;
+  private async handleCollectStakes(): Promise<MessageState> {
+    try {
+      const newStakes = await this.prompter.promptStakes();
+      this.stakes = newStakes;
+      return MessageState.CHOOSE_EDIT;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleLegend(): Promise<MessageState> {
-    // TODO validate props here?
-    const taskEmbed = createTaskEmbed({
-      name: this.description,
-      dueDate: this.dueDate,
-      cost: this.stakes,
-      authorID: this.userID,
-      partnerID: this.partner.id,
-      channelID: this.channel.id,
-    });
-    await this.channel.send(taskEmbed);
+  private async handleChooseEdit(): Promise<MessageState> {
+    try {
+      // TODO validate props here?
+      const taskEmbed = createTaskEmbed({
+        name: this.description,
+        dueDate: this.dueDate,
+        cost: this.stakes,
+        authorID: this.userID,
+        partnerID: this.partner.id,
+        channelID: this.channel.id,
+      });
+      await this.channel.send(taskEmbed);
 
-    const action = await this.prompter.promptTaskLegendAction(
-      TaskLegendType.CREATE_NEW,
-    );
+      const action = await this.prompter.promptEditAction(
+        TaskLegendType.CREATE_NEW,
+      );
 
-    if (action === TaskLegendAction.EDIT_DESCRIPTION)
-      return MessageState.DESCRIPTION;
-    if (action === TaskLegendAction.EDIT_DUE_DATE) return MessageState.DEADLINE;
-    if (action === TaskLegendAction.EDIT_PARTNER) return MessageState.PARTNER;
-    if (action === TaskLegendAction.EDIT_STAKES) return MessageState.STAKES;
-    if (action === TaskLegendAction.CONFIRM) return MessageState.CONFIRM;
-    if (action === TaskLegendAction.CANCEL) return MessageState.CANCEL;
-    throw new Error('Received unexpected emoji.');
+      if (action === EditAction.DESCRIPTION)
+        return MessageState.GET_DESCRIPTION;
+      if (action === EditAction.DUE_DATE) return MessageState.GET_DEADLINE;
+      if (action === EditAction.PARTNER) return MessageState.GET_PARTNER;
+      if (action === EditAction.STAKES) return MessageState.GET_STAKES;
+      if (action === EditAction.CONFIRM) {
+        this.completeTaskAdd();
+        return MessageState.END;
+      }
+      if (action === EditAction.CANCEL) {
+        this.cancelTaskAdd();
+        return MessageState.END;
+      }
+
+      await this.sendErrorMsg({
+        description: 'Received unexpected emoji, cancelling task creation.',
+      });
+      return MessageState.END;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleConfirm(): Promise<MessageState> {
+  private async completeTaskAdd(): Promise<void> {
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
       .setDescription(`Your task has been created!`); // TODO mention due date
@@ -173,16 +196,12 @@ export default class TaskAddMessenger extends Messenger {
       name: this.description,
       dueDate: this.dueDate,
     });
-
-    return MessageState.END;
   }
 
-  private async handleCancel(): Promise<MessageState> {
+  private async cancelTaskAdd(): Promise<void> {
     const cancelEmbed = new MessageEmbed()
       .setColor(theme.colors.error)
       .setDescription('Task creation cancelled, nothing was saved.');
-
     await this.channel.send(cancelEmbed);
-    return MessageState.END;
   }
 }

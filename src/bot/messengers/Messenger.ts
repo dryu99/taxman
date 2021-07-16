@@ -1,9 +1,6 @@
-import { Message, MessageEmbed, MessageReaction } from 'discord.js';
-import EditCommand from '../../commands/tasks/edit';
-import { Task } from '../../models/TaskModel';
+import { Message, MessageEmbed } from 'discord.js';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
-import { getUserInputReaction } from '../utils';
 
 export default abstract class Messenger {
   protected channel: DiscordTextChannel;
@@ -15,7 +12,7 @@ export default abstract class Messenger {
 
   public abstract prompt();
 
-  protected async sendTimeoutMsg(
+  protected async sendCollectTimeoutMsg(
     title?: string,
     description?: string,
   ): Promise<Message> {
@@ -25,7 +22,10 @@ export default abstract class Messenger {
     return await this.channel.send(timeoutEmbed);
   }
 
-  protected async sendErrorMsg(description: string): Promise<void> {
-    await this.channel.send(`Interal Bot Error: ${description}`);
+  protected async sendErrorMsg(description): Promise<void> {
+    const errorEmbed = new MessageEmbed().setColor(theme.colors.error);
+    // if (title) errorEmbed.setTitle(title);
+    if (description) errorEmbed.setTitle(description);
+    await this.channel.send(errorEmbed);
   }
 }

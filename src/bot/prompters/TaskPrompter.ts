@@ -4,11 +4,11 @@ import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import { getUserInputReaction, getUserInputMessage } from '../utils';
 
-export enum TaskLegendAction {
-  EDIT_DESCRIPTION = 'edit_description',
-  EDIT_DUE_DATE = 'edit_due_date',
-  EDIT_PARTNER = 'edit_partner',
-  EDIT_STAKES = 'edit_stakes',
+export enum EditAction {
+  DESCRIPTION = 'edit_description',
+  DUE_DATE = 'edit_due_date',
+  PARTNER = 'edit_partner',
+  STAKES = 'edit_stakes',
   CONFIRM = 'confirm',
   CANCEL = 'cancel',
 }
@@ -18,44 +18,28 @@ export enum TaskLegendType {
   EDIT = 'edit',
 }
 
-const EMOJI_ACTION_MAP: { [emoji: string]: TaskLegendAction } = {
-  '✏️': TaskLegendAction.EDIT_DESCRIPTION,
-  '⏰': TaskLegendAction.EDIT_DUE_DATE,
-  '👯': TaskLegendAction.EDIT_PARTNER,
-  '💰': TaskLegendAction.EDIT_STAKES,
-  '✅': TaskLegendAction.CONFIRM,
-  '❌': TaskLegendAction.CANCEL,
+const EMOJI_ACTION_MAP: { [emoji: string]: EditAction } = {
+  '✏️': EditAction.DESCRIPTION,
+  '⏰': EditAction.DUE_DATE,
+  '👯': EditAction.PARTNER,
+  '💰': EditAction.STAKES,
+  '✅': EditAction.CONFIRM,
+  '❌': EditAction.CANCEL,
 };
 
+// Provides input collection methods related to task creation/editing
 export default class TaskPrompter {
-  private channel: DiscordTextChannel;
-  private userID: string;
+  protected channel: DiscordTextChannel;
+  protected userID: string;
 
   constructor(channel: DiscordTextChannel, userID: string) {
     this.channel = channel;
     this.userID = userID;
   }
 
-  // TODO this should go somewhere else lmao maybe parent class
-  public async promptReaction(
-    title: string,
-    description: string,
-    emojis: string[],
-  ): Promise<MessageReaction> {
-    const reactEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle(title)
-      .setDescription(description);
-
-    const reactMsg = await this.channel.send(reactEmbed);
-    const reaction = await getUserInputReaction(reactMsg, emojis, this.userID);
-    reaction.users.remove(this.userID); // async
-    return reaction;
-  }
-
-  public async promptTaskLegendAction(
+  public async promptEditAction(
     legendType: TaskLegendType,
-  ): Promise<TaskLegendAction> {
+  ): Promise<EditAction> {
     const isCreateLegend = legendType === TaskLegendType.CREATE_NEW;
 
     const reactEmbed = new MessageEmbed()
@@ -177,11 +161,11 @@ export default class TaskPrompter {
 
       // send error msg on bad input
       if (isNaN(stakes)) {
-        const stkaesErrorEmbed = new MessageEmbed()
+        const stakesErrorEmbed = new MessageEmbed()
           .setColor(theme.colors.error)
           .setDescription(`Please give a valid dollar amount.`);
 
-        await this.channel.send(stkaesErrorEmbed);
+        await this.channel.send(stakesErrorEmbed);
       }
     }
     return stakes;

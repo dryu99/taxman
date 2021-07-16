@@ -66,6 +66,7 @@ export const createTaskEmbed = (
   return embed;
 };
 
+// TODO rename to collect
 export const getUserInputReaction = async (
   msg: Message,
   emojis: string[],
@@ -86,12 +87,10 @@ export const getUserInputReaction = async (
     );
 
     const reaction = collectedReactions.first();
-    if (!reaction)
-      throw new Error("Internal Bot Error: Reaction couldn't be collected."); // TODO handle this error better (look at edit command caller)
-
+    if (!reaction) throw new Error("Reaction couldn't be collected.");
     return reaction;
   } catch (e) {
-    throw new TimeoutError('You took too long to react, cancelling command.');
+    throw new TimeoutError('User took too long to respond with react input.');
   }
 };
 
@@ -105,6 +104,7 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
   }
 };
 
+// TODO rename to collect
 export const getUserInputMessage = async (
   channel: DiscordTextChannel,
   filterUserID: string,
@@ -120,11 +120,9 @@ export const getUserInputMessage = async (
     );
 
     const collectedMsg = collectedMsgs.first();
-    if (!collectedMsg)
-      throw new Error("Internal Bot Error: Message couldn't be collected."); // TODO handle this error better (look at edit command caller)
-
+    if (!collectedMsg) throw new Error("Message couldn't be collected.");
     return collectedMsg;
   } catch (e) {
-    throw new TimeoutError('You took too long to react, cancelling command.');
+    throw new TimeoutError('User took too long to respond with text input.');
   }
 };

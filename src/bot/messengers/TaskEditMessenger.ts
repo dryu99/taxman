@@ -8,23 +8,22 @@ import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
 import TaskPrompter, {
-  TaskLegendAction,
+  EditAction,
   TaskLegendType,
 } from '../prompters/TaskPrompter';
 
 enum MessageState {
   EDIT_LEGEND = 'react_legend',
-  DEADLINE = 'due_date',
-  DESCRIPTION = 'description',
-  CONFIRM = 'confirm',
-  CANCEL = 'cancel',
+  GET_DEADLINE = 'due_date',
+  GET_DESCRIPTION = 'description',
   END = 'end',
 }
 
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
-// TODO partner confirm embed contains redundant info... make it smaller
 // TODO allow users to cancel mid edit
 export default class TaskEditMessenger extends Messenger {
+  static TIMEOUT_MSG: string = 'This command timed out, cancelling command';
+
   private task: Task;
   private newTask: Task;
   private commandMsg: Message;
@@ -41,79 +40,85 @@ export default class TaskEditMessenger extends Messenger {
   }
 
   public async prompt(): Promise<void> {
-    try {
-      while (true) {
-        switch (this.state) {
-          case MessageState.EDIT_LEGEND: {
-            this.state = await this.handleLegend();
-            break;
-          }
-          case MessageState.DESCRIPTION: {
-            this.state = await this.handleDescription();
-            break;
-          }
-          case MessageState.DEADLINE: {
-            this.state = await this.handleDeadline();
-            break;
-          }
-          case MessageState.CONFIRM: {
-            this.state = await this.handleConfirm();
-            break;
-          }
-          case MessageState.CANCEL: {
-            this.state = await this.handleCancel();
-            break;
-          }
-          case MessageState.END: {
-            logger.info('exiting message loop');
-            return;
-          }
-          default: {
-            logger.error('Unknown state received', this.state);
-            return; // exit message loop
-          }
-        }
+    while (true) {
+      switch (this.state) {
+        case MessageState.EDIT_LEGEND:
+          this.state = await this.handleChooseEdit();
+          break;
+        case MessageState.GET_DESCRIPTION:
+          this.state = await this.handleCollectDescription();
+          break;
+        case MessageState.GET_DEADLINE:
+          this.state = await this.handleCollectDeadline();
+          break;
+        case MessageState.END:
+          logger.info('exiting message loop');
+          return;
+        default:
+          logger.error('Unknown state received', this.state);
+          return;
       }
-    } catch (e) {
-      logger.error(e);
-      if (e instanceof TimeoutError) await this.sendTimeoutMsg();
-
-      // TODO maybe throw here? to let caller handle bad errors.
-      //      I feel there are no expected bad errors. we should only really get timeout + editing error
-      //      So i guess we should throw cause its a reallllly unexpected error
-      return;
     }
   }
 
-  private async handleLegend(): Promise<MessageState> {
-    const taskEmbed = createTaskEmbed(this.newTask);
-    await this.commandMsg.reply(taskEmbed);
+  private async handleChooseEdit(): Promise<MessageState> {
+    try {
+      const taskEmbed = createTaskEmbed(this.newTask);
+      await this.commandMsg.reply(taskEmbed);
 
-    const action = await this.prompter.promptTaskLegendAction(
-      TaskLegendType.EDIT,
-    );
+      const action = await this.prompter.promptEditAction(TaskLegendType.EDIT);
 
-    if (action === TaskLegendAction.EDIT_DESCRIPTION)
-      return MessageState.DESCRIPTION;
-    if (action === TaskLegendAction.EDIT_DUE_DATE) return MessageState.DEADLINE;
-    if (action === TaskLegendAction.CONFIRM) return MessageState.CONFIRM;
-    if (action === TaskLegendAction.CANCEL) return MessageState.CANCEL;
-    throw new Error('Received unexpected emoji.');
+      if (action === EditAction.DESCRIPTION)
+        return MessageState.GET_DESCRIPTION;
+      if (action === EditAction.DUE_DATE) return MessageState.GET_DEADLINE;
+      if (action === EditAction.CONFIRM) {
+        this.completeTaskEdit();
+        return MessageState.END;
+      }
+      if (action === EditAction.CANCEL) {
+        this.cancelTaskEdit();
+        return MessageState.END;
+      }
+
+      await this.sendErrorMsg({
+        description: 'Received unexpected emoji, cancelling task creation.',
+      });
+      return MessageState.END;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskEditMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleDescription(): Promise<MessageState> {
-    const newDescription = await this.prompter.promptDescription();
-    this.newTask.name = newDescription;
-    return MessageState.EDIT_LEGEND;
+  private async handleCollectDescription(): Promise<MessageState> {
+    try {
+      const newDescription = await this.prompter.promptDescription();
+      this.newTask.name = newDescription;
+      return MessageState.EDIT_LEGEND;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskEditMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleDeadline(): Promise<MessageState> {
-    const newDueDate = await this.prompter.promptDeadline();
-    this.newTask.dueDate = newDueDate;
-    return MessageState.EDIT_LEGEND;
+  private async handleCollectDeadline(): Promise<MessageState> {
+    try {
+      const newDueDate = await this.prompter.promptDeadline();
+      this.newTask.dueDate = newDueDate;
+      return MessageState.EDIT_LEGEND;
+    } catch (e) {
+      const errorText =
+        e instanceof TimeoutError ? TaskEditMessenger.TIMEOUT_MSG : e.message;
+      await this.sendErrorMsg(errorText);
+      return MessageState.END;
+    }
   }
 
-  private async handleConfirm(): Promise<MessageState> {
+  private async completeTaskEdit(): Promise<MessageState> {
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
       .setDescription(`You finished editing! Your edits have been saved.`);
@@ -125,11 +130,11 @@ export default class TaskEditMessenger extends Messenger {
       dueDate: this.newTask.dueDate,
     });
     if (!updatedTask)
-      throw new Error(`Task with ID ${this.task.id} couldn't be updated.`); // TODO should prob move to task service?? maybe check out other uses of update and see how common this error could occur
+      throw new Error(`Task with ID ${this.task.id} couldn't be updated.`);
     return MessageState.END;
   }
 
-  private async handleCancel(): Promise<MessageState> {
+  private async cancelTaskEdit(): Promise<MessageState> {
     const cancelEmbed = new MessageEmbed()
       .setColor(theme.colors.error)
       .setDescription(`You cancelled editing! None of your edits were saved.`);

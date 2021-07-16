@@ -7,10 +7,9 @@ import { TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
-import Prompter from '../prompters/Prompter';
 
 enum MessageState {
-  USER_CHECK_IN = 'user_check_in',
+  USER_CONFIRM = 'user_confirm',
   PARTNER_CONFIRM = 'partner_confirm',
   END = 'end',
 }
@@ -24,14 +23,14 @@ export default class TaskCheckInMessenger extends Messenger {
   constructor(task: Task, channel: DiscordTextChannel) {
     super(channel);
     this.task = task;
-    this.state = MessageState.USER_CHECK_IN; // start state
+    this.state = MessageState.USER_CONFIRM; // start state
   }
 
   public async prompt() {
     while (true) {
       switch (this.state) {
-        case MessageState.USER_CHECK_IN:
-          this.state = await this.handleUserCheckIn();
+        case MessageState.USER_CONFIRM:
+          this.state = await this.handleUserConfirm();
           break;
         case MessageState.PARTNER_CONFIRM:
           this.state = await this.handlePartnerConfirm();
@@ -46,7 +45,7 @@ export default class TaskCheckInMessenger extends Messenger {
     }
   }
 
-  private async handleUserCheckIn(): Promise<MessageState> {
+  private async handleUserConfirm(): Promise<MessageState> {
     try {
       // send reaction embed + collect reacts
       const reactionTimeLimitMinutes = 5;
