@@ -4,6 +4,29 @@ import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import { getUserInputReaction, getUserInputMessage } from '../utils';
 
+export enum TaskLegendAction {
+  EDIT_DESCRIPTION = 'edit_description',
+  EDIT_DUE_DATE = 'edit_due_date',
+  EDIT_PARTNER = 'edit_partner',
+  EDIT_STAKES = 'edit_stakes',
+  CONFIRM = 'confirm',
+  CANCEL = 'cancel',
+}
+
+export enum TaskLegendType {
+  CREATE_NEW = 'create_new',
+  EDIT = 'edit',
+}
+
+const EMOJI_ACTION_MAP: { [emoji: string]: TaskLegendAction } = {
+  '✏️': TaskLegendAction.EDIT_DESCRIPTION,
+  '⏰': TaskLegendAction.EDIT_DUE_DATE,
+  '👯': TaskLegendAction.EDIT_PARTNER,
+  '💰': TaskLegendAction.EDIT_STAKES,
+  '✅': TaskLegendAction.CONFIRM,
+  '❌': TaskLegendAction.CANCEL,
+};
+
 export default class TaskPrompter {
   private channel: DiscordTextChannel;
   private userID: string;
@@ -30,54 +53,36 @@ export default class TaskPrompter {
     return reaction;
   }
 
-  // public async promptLegendReaction(
-  //   legendType: 'add' | 'edit',
-  // ): Promise<MessageReaction> {
-  //   const descriptionIntro = `
-  //     Your task is shown above! To edit your task, use one of the emojis on this message.
-  //     Be sure to confirm your new task below.
-  //   `;
+  public async promptTaskLegendAction(
+    legendType: TaskLegendType,
+  ): Promise<TaskLegendAction> {
+    const isCreateLegend = legendType === TaskLegendType.CREATE_NEW;
 
-  //   const description =
-  //     legendType === 'add'
-  //       ? `
-  //   ${descriptionIntro}
-  //   (Note: you cannot edit task stakes after you create the task)
+    const reactEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setTitle('Task Confirmation').setDescription(`      
+      Your task is shown above! To edit your task, use one of the emojis on this message. 
+      Be sure to confirm your new task below.
+      (Note: you cannot edit stakes or partner after initial task creation)
 
-  //   ✏️ Edit title
-  //   ⏰ Edit due date
+      ✏️ Edit title
+      ⏰ Edit due date
+      ${isCreateLegend ? '👯 Edit accountability partner' : ''}
+      ${isCreateLegend ? '💰 Edit stakes' : ''}      
+      
+      ✅ Confirm
+      ❌ Cancel    
+      `);
 
-  //   ✅ Confirm
-  //   ❌ Cancel
-  //   `
-  //       : `
-  //   ${descriptionIntro}
-  //   (Note: you cannot edit task stakes after initial task creation)
+    const emojis = isCreateLegend
+      ? ['✏️', '⏰', '👯', '💰', '✅', '❌']
+      : ['✏️', '⏰', '✅', '❌'];
 
-  //   ✏️ Edit title
-  //   ⏰ Edit due date
-  //   👯 Edit accountability partner
-  //   💰 Edit stakes
-
-  //   ✅ Confirm
-  //   ❌ Cancel
-  //   `;
-
-  //   const emojis =
-  //     legendType === 'add'
-  //       ? ['✏️', '⏰', '👯', '💰', '✅', '❌']
-  //       : ['✏️', '⏰', '✅', '❌'];
-
-  //   const reactEmbed = new MessageEmbed()
-  //     .setColor(theme.colors.primary.main)
-  //     .setTitle('Task Confirmation')
-  //     .setDescription(description);
-
-  //   const reactMsg = await this.channel.send(reactEmbed);
-  //   const reaction = await getUserInputReaction(reactMsg, emojis, this.userID);
-  //   reaction.users.remove(this.userID); // async
-  //   return reaction;
-  // }
+    const reactMsg = await this.channel.send(reactEmbed);
+    const reaction = await getUserInputReaction(reactMsg, emojis, this.userID);
+    reaction.users.remove(this.userID); // async
+    return EMOJI_ACTION_MAP[reaction.emoji.name];
+  }
 
   public async promptDescription(): Promise<string> {
     const descriptionEmbed = new MessageEmbed()

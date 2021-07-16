@@ -6,7 +6,10 @@ import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import { createTaskEmbed, getUserInputMessage } from '../utils';
-import TaskPrompter from '../prompters/TaskPrompter';
+import TaskPrompter, {
+  TaskLegendAction,
+  TaskLegendType,
+} from '../prompters/TaskPrompter';
 import taskService from '../../services/task-service';
 
 enum MessageState {
@@ -45,8 +48,6 @@ export default class TaskAddMessenger extends Messenger {
     this.state = MessageState.DESCRIPTION;
     this.workflow = Workflow.CREATE;
     this.prompter = new TaskPrompter(channel, commandMsg.author.id);
-
-    // commandMsg.author.id
   }
 
   public async prompt(): Promise<void> {
@@ -95,7 +96,7 @@ export default class TaskAddMessenger extends Messenger {
       }
     } catch (e) {
       logger.error(e);
-      if (e instanceof TimeoutError) this.sendTimeoutMsg();
+      if (e instanceof TimeoutError) await this.sendTimeoutMsg();
 
       return;
     }
@@ -143,30 +144,17 @@ export default class TaskAddMessenger extends Messenger {
     });
     await this.channel.send(taskEmbed);
 
-    const reaction = await this.prompter.promptReaction(
-      'Task Confirmation',
-      `Your task is shown above! To edit your task, use one of the emojis on this message. 
-    Be sure to confirm your new task below.
-    (Note: you cannot edit task stakes after initial task creation)
-
-    ✏️ Edit title
-    ⏰ Edit due date
-    👯 Edit accountability partner
-    💰 Edit stakes
-    
-    ✅ Confirm
-    ❌ Cancel
-    `,
-      ['✏️', '⏰', '👯', '💰', '✅', '❌'],
+    const action = await this.prompter.promptTaskLegendAction(
+      TaskLegendType.CREATE_NEW,
     );
 
-    const emojiStr = reaction.emoji.name;
-    if (emojiStr === '✏️') return MessageState.DESCRIPTION;
-    if (emojiStr === '⏰') return MessageState.DEADLINE;
-    if (emojiStr === '👯') return MessageState.PARTNER;
-    if (emojiStr === '💰') return MessageState.STAKES;
-    if (emojiStr === '✅') return MessageState.CONFIRM;
-    if (emojiStr === '❌') return MessageState.CANCEL;
+    if (action === TaskLegendAction.EDIT_DESCRIPTION)
+      return MessageState.DESCRIPTION;
+    if (action === TaskLegendAction.EDIT_DUE_DATE) return MessageState.DEADLINE;
+    if (action === TaskLegendAction.EDIT_PARTNER) return MessageState.PARTNER;
+    if (action === TaskLegendAction.EDIT_STAKES) return MessageState.STAKES;
+    if (action === TaskLegendAction.CONFIRM) return MessageState.CONFIRM;
+    if (action === TaskLegendAction.CANCEL) return MessageState.CANCEL;
     throw new Error('Received unexpected emoji.');
   }
 

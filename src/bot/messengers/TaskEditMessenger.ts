@@ -7,12 +7,15 @@ import { TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
-import TaskPrompter from '../prompters/TaskPrompter';
+import TaskPrompter, {
+  TaskLegendAction,
+  TaskLegendType,
+} from '../prompters/TaskPrompter';
 
 enum MessageState {
-  REACT_LEGEND = 'react_legend',
-  EDIT_DEADLINE = 'edit_due_date',
-  EDIT_DESCRIPTION = 'edit_description',
+  EDIT_LEGEND = 'react_legend',
+  DEADLINE = 'due_date',
+  DESCRIPTION = 'description',
   CONFIRM = 'confirm',
   CANCEL = 'cancel',
   END = 'end',
@@ -33,7 +36,7 @@ export default class TaskEditMessenger extends Messenger {
     this.task = task;
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.commandMsg = commandMsg;
-    this.state = MessageState.REACT_LEGEND;
+    this.state = MessageState.EDIT_LEGEND;
     this.prompter = new TaskPrompter(channel, commandMsg.author.id);
   }
 
@@ -41,16 +44,16 @@ export default class TaskEditMessenger extends Messenger {
     try {
       while (true) {
         switch (this.state) {
-          case MessageState.REACT_LEGEND: {
-            this.state = await this.handleReactLegend();
+          case MessageState.EDIT_LEGEND: {
+            this.state = await this.handleLegend();
             break;
           }
-          case MessageState.EDIT_DESCRIPTION: {
-            this.state = await this.handleEditDescription();
+          case MessageState.DESCRIPTION: {
+            this.state = await this.handleDescription();
             break;
           }
-          case MessageState.EDIT_DEADLINE: {
-            this.state = await this.handleEditDeadline();
+          case MessageState.DEADLINE: {
+            this.state = await this.handleDeadline();
             break;
           }
           case MessageState.CONFIRM: {
@@ -82,57 +85,32 @@ export default class TaskEditMessenger extends Messenger {
     }
   }
 
-  private async handleReactLegend(): Promise<MessageState> {
+  private async handleLegend(): Promise<MessageState> {
     const taskEmbed = createTaskEmbed(this.newTask);
-    // const taskMsg = await this.channel.send(taskEmbed);
+    await this.commandMsg.reply(taskEmbed);
 
-    this.commandMsg.reply(taskEmbed);
-
-    const reactLegendEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setTitle('Edit Task')
-      .setDescription(
-        // TODO rephrase this since you just copied it
-        // TODO also use the template literal lib suggested in docs to format nicely
-        `Your task is shown above! To edit your task, use one of the emojis on this message. 
-        Be sure to confirm your new task below.
-        (Note: you cannot edit the cost after initial task creation)
-
-        ✏️ Edit title
-        ⏰ Edit due date
-        
-        ✅ Confirm
-        ❌ Cancel
-        `,
-      );
-    const reactLegendMsg = await this.channel.send(reactLegendEmbed);
-    const reaction = await getUserInputReaction(
-      reactLegendMsg,
-      ['✏️', '⏰', '✅', '❌'],
-      this.task.authorID,
+    const action = await this.prompter.promptTaskLegendAction(
+      TaskLegendType.EDIT,
     );
 
-    // remove reaction (looks cleaner that way)
-    reaction.users.remove(this.task.authorID); // async
-
-    const emojiStr = reaction.emoji.name;
-    if (emojiStr === '✏️') return MessageState.EDIT_DESCRIPTION;
-    if (emojiStr === '⏰') return MessageState.EDIT_DEADLINE;
-    if (emojiStr === '✅') return MessageState.CONFIRM;
-    if (emojiStr === '❌') return MessageState.CANCEL;
+    if (action === TaskLegendAction.EDIT_DESCRIPTION)
+      return MessageState.DESCRIPTION;
+    if (action === TaskLegendAction.EDIT_DUE_DATE) return MessageState.DEADLINE;
+    if (action === TaskLegendAction.CONFIRM) return MessageState.CONFIRM;
+    if (action === TaskLegendAction.CANCEL) return MessageState.CANCEL;
     throw new Error('Received unexpected emoji.');
   }
 
-  private async handleEditDescription(): Promise<MessageState> {
+  private async handleDescription(): Promise<MessageState> {
     const newDescription = await this.prompter.promptDescription();
     this.newTask.name = newDescription;
-    return MessageState.REACT_LEGEND;
+    return MessageState.EDIT_LEGEND;
   }
 
-  private async handleEditDeadline(): Promise<MessageState> {
+  private async handleDeadline(): Promise<MessageState> {
     const newDueDate = await this.prompter.promptDeadline();
     this.newTask.dueDate = newDueDate;
-    return MessageState.REACT_LEGEND;
+    return MessageState.EDIT_LEGEND;
   }
 
   private async handleConfirm(): Promise<MessageState> {
