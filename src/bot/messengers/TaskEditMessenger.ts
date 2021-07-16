@@ -1,6 +1,6 @@
 import { Message, MessageEmbed } from 'discord.js';
 import { Task } from '../../models/TaskModel';
-import { getUserInputReaction, createTaskEmbed } from '../utils';
+import { getUserInputReaction, createTaskEmbed, parseDate } from '../utils';
 import theme from '../theme';
 import taskService from '../../services/task-service';
 import { TimeoutError } from '../errors';
@@ -11,6 +11,7 @@ import TaskPrompter, {
   EditAction,
   TaskLegendType,
 } from '../prompters/TaskPrompter';
+import { DateTime } from 'luxon';
 
 enum MessageState {
   EDIT_LEGEND = 'react_legend',
@@ -36,7 +37,11 @@ export default class TaskEditMessenger extends Messenger {
     this.newTask = { ...task }; // TODO might need to deep clone (if theres nested data)
     this.commandMsg = commandMsg;
     this.state = MessageState.EDIT_LEGEND;
-    this.prompter = new TaskPrompter(channel, commandMsg.author.id);
+    this.prompter = new TaskPrompter(
+      channel,
+      commandMsg.author.id,
+      TaskLegendType.EDIT,
+    );
   }
 
   public async prompt(): Promise<void> {
@@ -66,7 +71,7 @@ export default class TaskEditMessenger extends Messenger {
       const taskEmbed = createTaskEmbed(this.newTask);
       await this.commandMsg.reply(taskEmbed);
 
-      const action = await this.prompter.promptEditAction(TaskLegendType.EDIT);
+      const action = await this.prompter.promptEditAction();
 
       if (action === EditAction.DESCRIPTION)
         return MessageState.GET_DESCRIPTION;
@@ -94,8 +99,8 @@ export default class TaskEditMessenger extends Messenger {
 
   private async handleCollectDescription(): Promise<MessageState> {
     try {
-      const newDescription = await this.prompter.promptDescription();
-      this.newTask.name = newDescription;
+      const userMsg = await this.prompter.promptDescription();
+      this.newTask.name = userMsg.content;
       return MessageState.EDIT_LEGEND;
     } catch (e) {
       const errorText =
@@ -107,8 +112,14 @@ export default class TaskEditMessenger extends Messenger {
 
   private async handleCollectDeadline(): Promise<MessageState> {
     try {
-      const newDueDate = await this.prompter.promptDeadline();
-      this.newTask.dueDate = newDueDate;
+      const userMsg = await this.prompter.promptDeadline();
+      const newDueDate = parseDate(userMsg.content);
+
+      if (!this.validateDate(newDueDate)) {
+        return MessageState.GET_DEADLINE;
+      }
+
+      this.newTask.dueDate = newDueDate.toJSDate();
       return MessageState.EDIT_LEGEND;
     } catch (e) {
       const errorText =

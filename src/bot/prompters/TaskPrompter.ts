@@ -1,4 +1,4 @@
-import { MessageReaction, MessageEmbed, User } from 'discord.js';
+import { MessageReaction, MessageEmbed, User, Message } from 'discord.js';
 import { DateTime } from 'luxon';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
@@ -28,19 +28,24 @@ const EMOJI_ACTION_MAP: { [emoji: string]: EditAction } = {
 };
 
 // Provides input collection methods related to task creation/editing
+// Should be instantiated for each unique message workflow (i.e. per user)
 export default class TaskPrompter {
   protected channel: DiscordTextChannel;
   protected userID: string;
+  private legendType: TaskLegendType;
 
-  constructor(channel: DiscordTextChannel, userID: string) {
+  constructor(
+    channel: DiscordTextChannel,
+    userID: string,
+    legendType: TaskLegendType,
+  ) {
     this.channel = channel;
     this.userID = userID;
+    this.legendType = legendType;
   }
 
-  public async promptEditAction(
-    legendType: TaskLegendType,
-  ): Promise<EditAction> {
-    const isCreateLegend = legendType === TaskLegendType.CREATE_NEW;
+  public async promptEditAction(): Promise<EditAction> {
+    const isCreateLegend = this.legendType === TaskLegendType.CREATE_NEW;
 
     const reactEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
@@ -68,57 +73,28 @@ export default class TaskPrompter {
     return EMOJI_ACTION_MAP[reaction.emoji.name];
   }
 
-  public async promptDescription(): Promise<string> {
-    const descriptionEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setDescription(`Please provide a brief description of your task.`);
+  public async promptDescription(): Promise<Message> {
+    const descriptionEmbed = this.createPromptEmbed(
+      `Please provide a brief description of your task.`,
+    );
     await this.channel.send(descriptionEmbed);
-
-    const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-    return userInputMsg.content;
+    return await getUserInputMessage(this.channel, this.userID);
   }
 
-  public async promptDeadline(): Promise<Date> {
+  public async promptDeadline(): Promise<Message> {
     const currISODate = new Date().toISOString();
     const dateExample =
       currISODate.slice(0, 10) + ' ' + currISODate.slice(11, 16);
     // TODO shoulnd't use iso date lmao
 
-    const deadlineEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setDescription(
-        `
-        Please provide the deadline for your task.
-        Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
+    const deadlineEmbed = this.createPromptEmbed(`
+      Please provide the deadline for your task.
+      Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
 
-        Example: \`${dateExample}\`
-        `,
-      );
+      Example: \`${dateExample}\`
+      `);
     await this.channel.send(deadlineEmbed);
-
-    let dueDate: DateTime | undefined;
-    while (!dueDate || !dueDate.isValid) {
-      // collect user input
-      const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-      const dueDateStr = userInputMsg.content;
-      const [date, time] = dueDateStr.trim().split(' ') as [string?, string?];
-      dueDate = DateTime.fromISO(`${date}T${time}`, {
-        zone: 'America/Los_Angeles', // TODO change to use user input
-      });
-
-      // send error msg on bad input
-      if (!dueDate.isValid) {
-        const dateErrorEmbed = new MessageEmbed()
-          .setColor(theme.colors.error)
-          .setDescription(
-            `Please format your response like this: \`<YYYY-MM-DD> <HH:MM>\``,
-          );
-
-        await this.channel.send(dateErrorEmbed);
-      }
-    }
-
-    return dueDate.toJSDate();
+    return await getUserInputMessage(this.channel, this.userID);
   }
 
   public async promptPartner(): Promise<User> {
@@ -169,5 +145,16 @@ export default class TaskPrompter {
       }
     }
     return stakes;
+  }
+
+  private createPromptEmbed(description: string): MessageEmbed {
+    const embed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(description);
+
+    if (this.legendType === TaskLegendType.CREATE_NEW) {
+      embed.setFooter('Type `cancel` to stop');
+    }
+    return embed;
   }
 }
