@@ -5,13 +5,12 @@ import { TimeoutError } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
-import { createTaskEmbed, getUserInputMessage, parseDate } from '../utils';
+import { createTaskEmbed, getUserInputMessage } from '../utils';
 import TaskPrompter, {
   EditAction,
   TaskLegendType,
 } from '../prompters/TaskPrompter';
 import taskService from '../../services/task-service';
-import { DateTime } from 'luxon';
 
 enum MessageState {
   GET_DESCRIPTION = 'description',
@@ -48,11 +47,7 @@ export default class TaskAddMessenger extends Messenger {
     this.commandMsg = commandMsg;
     this.state = MessageState.GET_DESCRIPTION;
     this.workflow = MessageWorkflow.CREATE;
-    this.prompter = new TaskPrompter(
-      channel,
-      commandMsg.author.id,
-      TaskLegendType.CREATE_NEW,
-    );
+    this.prompter = new TaskPrompter(channel, commandMsg.author.id);
   }
 
   public async prompt(): Promise<void> {
@@ -87,13 +82,8 @@ export default class TaskAddMessenger extends Messenger {
 
   private async handleCollectDescription(): Promise<MessageState> {
     try {
-      const userMsg = await this.prompter.promptDescription();
-      if (userMsg.content === Messenger.CANCEL_KEY) {
-        this.cancelTaskAdd();
-        return MessageState.END;
-      }
-
-      this.description = userMsg.content;
+      const newDescription = await this.prompter.promptDescription();
+      this.description = newDescription;
       return this.workflow === MessageWorkflow.CREATE
         ? MessageState.GET_DEADLINE
         : MessageState.CHOOSE_EDIT;
@@ -107,18 +97,8 @@ export default class TaskAddMessenger extends Messenger {
 
   private async handleCollectDeadline(): Promise<MessageState> {
     try {
-      const userMsg = await this.prompter.promptDeadline();
-      if (userMsg.content === Messenger.CANCEL_KEY) {
-        this.cancelTaskAdd();
-        return MessageState.END;
-      }
-
-      const newDueDate = parseDate(userMsg.content);
-      if (!this.validateDate(newDueDate)) {
-        return MessageState.GET_DEADLINE;
-      }
-
-      this.dueDate = newDueDate.toJSDate();
+      const newDueDate = await this.prompter.promptDeadline();
+      this.dueDate = newDueDate;
       return this.workflow === MessageWorkflow.CREATE
         ? MessageState.GET_PARTNER
         : MessageState.CHOOSE_EDIT;
@@ -171,7 +151,9 @@ export default class TaskAddMessenger extends Messenger {
       });
       await this.channel.send(taskEmbed);
 
-      const action = await this.prompter.promptEditAction();
+      const action = await this.prompter.promptEditAction(
+        TaskLegendType.CREATE_NEW,
+      );
 
       if (action === EditAction.DESCRIPTION)
         return MessageState.GET_DESCRIPTION;

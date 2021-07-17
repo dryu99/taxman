@@ -5,7 +5,6 @@ import {
   MessageReaction,
   User,
 } from 'discord.js';
-import { DateTime } from 'luxon';
 import logger from '../lib/logger';
 import { Settings } from '../models/SettingsModel';
 import { NewTask, Task } from '../models/TaskModel';
@@ -126,12 +125,4 @@ export const getUserInputMessage = async (
   } catch (e) {
     throw new TimeoutError('User took too long to respond with text input.');
   }
-};
-
-export const parseDate = (str: string): DateTime => {
-  const [date, time] = str.trim().split(' ') as [string?, string?];
-  const dateTime = DateTime.fromISO(`${date}T${time}`, {
-    zone: 'America/Los_Angeles', // TODO change to use user input
-  });
-  return dateTime;
 };
