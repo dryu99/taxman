@@ -11,12 +11,12 @@ export enum TaskStatus {
 
 export interface NewTask {
   name: string; // tODO rename to title? description? make sure to change edit command embeds lol
-  dueDate: Date; // TODO rename to deadline
+  dueDate: Date; // TODO rename to deadline / dueAt
   cost?: number; // TODO rename to payout? stakes?
   authorID: string; // TODO consider changing to userID or discordUserID
   partnerID: string;
   channelID: string;
-  reminderMinutes: number;
+  reminderOffset?: number; // milliseconds TODO rename to
   // TODO guildID
   // frequency
   // reminderMinutes
@@ -28,6 +28,7 @@ export interface Task extends NewTask {
   id: string;
   createdAt: number; // TODO check to see if this is actualy being created
   status: TaskStatus;
+  wasReminded: boolean; // TODO rename lmao
 }
 
 export type MongoTask = Task & Document<any, any, Task>;
@@ -58,11 +59,14 @@ const taskSchema = new mongoose.Schema<Task>(
     },
     cost: {
       type: Number,
-      default: 0,
     },
-    reminderMinutes: {
+    reminderOffset: {
       type: Number,
-      default: 30,
+    },
+    wasReminded: {
+      type: Boolean,
+      required: true,
+      default: false,
     },
     status: {
       type: String,

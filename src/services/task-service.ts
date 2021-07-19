@@ -42,6 +42,43 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   return updatedDueTasks.map((task) => task.toJSON()); // TODO have to call toJson here??
 };
 
+// task_schema_check
+const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
+  const reminderTasks = await TaskModel.aggregate<Task>([
+    {
+      $project: {
+        // TODO how to improve typing here...
+        _id: false,
+        id: '$_id',
+        name: true,
+        dueDate: true,
+        cost: true,
+        reminderOffset: true,
+        authorID: true,
+        partnerID: true,
+        channelID: true,
+        status: true,
+        wasReminded: true,
+        reminderAt: { $subtract: ['$dueDate', '$reminderOffset'] },
+      },
+    },
+    {
+      $match: {
+        wasReminded: false,
+        reminderOffset: { $ne: null },
+        reminderAt: { $ne: null, $lte: currDate },
+        status: TaskStatus.PENDING,
+      },
+    },
+  ]);
+
+  // check reminded flag to avoid redundant fetches
+  const reminderTaskIDs = reminderTasks.map((task) => task.id);
+  await updateMany(reminderTaskIDs, { wasReminded: true });
+
+  return reminderTasks;
+};
+
 // TODO have to auth users for write operations (ow other users could mess with your shit)
 const add = async (newTask: NewTask): Promise<Task> => {
   const task = new TaskModel({
@@ -62,13 +99,31 @@ const update = async (
   return updatedTask?.toJSON();
 };
 
+const updateMany = async (
+  taskIDs: string[],
+  newProps: Partial<Task>,
+): Promise<Task[]> => {
+  const updatedTaskPromises: Promise<Task | undefined>[] = [];
+
+  // TODO we shouldn't be making multiple update queries for each task, we should do one big query.
+  //      But alas thats a problem for future me: https://docs.mongodb.com/manual/reference/method/db.collection.updateMany/
+  for (const taskID of taskIDs) {
+    updatedTaskPromises.push(update(taskID, newProps));
+  }
+
+  const updatedTasks = await Promise.all(updatedTaskPromises);
+  return updatedTasks.filter((task) => task !== undefined) as Task[];
+};
+
 const taskService = {
   getAll,
   getByID,
   getDueTasks,
+  getReminderTasks,
   add,
   getAuthorTasks,
   update,
+  updateMany,
 };
 
 export default taskService;

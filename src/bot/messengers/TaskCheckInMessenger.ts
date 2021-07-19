@@ -76,7 +76,7 @@ export default class TaskCheckInMessenger extends Messenger {
         );
 
       const reactMsg = await this.channel.send(
-        formatMention(this.task.authorID),
+        `${formatMention(this.task.authorID)} ‼️ TASK CHECK-IN ‼️`,
         { embed: reactEmbed },
       );
       const reaction = await getUserInputReaction(

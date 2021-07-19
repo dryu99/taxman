@@ -74,9 +74,9 @@ class ScheduleCommand extends Command {
     });
   }
 
+  // TODO make cost, reminder optional
   async run(msg: CommandoMessage, args: Record<ScheduleCommandArgs, string>) {
     const { description, date, time, timeType, cost, reminderMinutes } = args;
-    console.log('schedule args', args);
 
     // add user
     if (!userService.contains(msg.author.id)) {
@@ -125,7 +125,7 @@ class ScheduleCommand extends Command {
       cost: parsedCost,
       name: description,
       dueDate: dueDate.toDate(),
-      reminderMinutes: parsedReminderMinutes,
+      reminderOffset: parsedReminderMinutes * 60 * 1000,
     });
 
     return msg.reply('Task scheduled successfully!');

@@ -1,10 +1,10 @@
-import { TextChannel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import logger from '../lib/logger';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
 import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
+import { formatMention } from './utils';
 
 export default class Bot {
   static NAME: string = 'TaxBot';
@@ -70,12 +70,13 @@ export default class Bot {
       `[BOT] Checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
     );
 
+    // Check for due tasks
     // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
+    // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
     const dueTasks = await taskService.getDueTasks(new Date());
     logger.info('  Due tasks:', dueTasks);
 
-    // TOOD consider scenario where multiple users schedule task due dates at same time
     for (const dueTask of dueTasks) {
       const channel = await this.client.channels.fetch(dueTask.channelID);
       if (!channel.isText()) continue; // TODO sentry
@@ -85,8 +86,40 @@ export default class Bot {
 
       const taskCheckInMessenger = new TaskCheckInMessenger(dueTask, channel);
 
-      // TODO this is async and will fire right away -> what would this look like with 100s of tasks on dozens of servers?
-      taskCheckInMessenger.prompt();
+      // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)
+      taskCheckInMessenger.prompt(); // async
     }
+
+    // Check for tasks that need reminding
+    const sentReminderTaskIds: string[] = [];
+    const reminderTasks = await taskService.getReminderTasks(new Date());
+    logger.info('  Reminder tasks:', reminderTasks);
+    for (const reminderTask of reminderTasks) {
+      if (!reminderTask.reminderOffset) continue;
+
+      const channel = await this.client.channels.fetch(reminderTask.channelID);
+      if (!channel.isText()) continue; // TODO sentry
+
+      channel.send(
+        `${formatMention(reminderTask.authorID)} ‼️ REMINDER ‼️ your task "${
+          reminderTask.name
+        }" is due in **${
+          reminderTask.reminderOffset / (60 * 1000)
+        }** minutes @ ${reminderTask.dueDate.toLocaleString()}`,
+      ); // async
+
+      // TODO might need this depending on how you decide to update wasReminded flag
+      // .then(() => {
+      //   sentReminderTaskIds.push(reminderTask.id)
+      // })
+      // .catch(e => {
+      //   console.error(e)
+      //   // TODO sentry + log into file
+      // })
+    }
+
+    // if (sentReminderTaskIds.length > 0) {
+    //   taskService.updateMany(sentReminderTaskIds, { wasReminded: true })
+    // }
   }
 }
