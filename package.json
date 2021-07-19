@@ -12,15 +12,14 @@
   "author": "abyssal512",
   "license": "MIT",
   "dependencies": {
+    "dayjs": "^1.10.6",
     "discord.js": "^12.5.3",
     "discord.js-commando": "^0.12.3",
     "dotenv": "^10.0.0",
-    "luxon": "^1.28.0",
     "mongoose": "^5.13.2"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/luxon": "^1.27.1",
     "@types/mongoose": "^5.11.97",
     "@types/node": "15.0.0",
     "cross-env": "^7.0.3",
