@@ -1,21 +1,23 @@
 import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
-import { DateTime } from 'luxon';
 import logger from '../../lib/logger';
 import taskService from '../../services/task-service';
 import userService from '../../services/user-service';
+import dayjs from 'dayjs';
 
 enum ScheduleCommandArgs {
-  TASK_NAME = 'taskName',
+  DESCRIPTION = 'description',
   DATE = 'date',
   TIME = 'time',
   TIME_TYPE = 'timeType',
   TIME_ZONE = 'timeZone',
   COST = 'cost',
   PARTNER = 'partner',
+  REMINDER = 'reminderMinutes',
 }
 
-const prompt = 'Format is: <Task name> <YYYY-MM-DD> <HH:MM> <Cost> <@Partner>';
+const prompt =
+  'Format is: <Description> <MM/DD> <HH:MM> <AM/PM> <Reminder (x minutes before)> <Cost> <@Partner>';
 
 class ScheduleCommand extends Command {
   static DEFAULT_CMD_NAME = 'schedule';
@@ -29,7 +31,7 @@ class ScheduleCommand extends Command {
       description: 'Schedule a new task.',
       args: [
         {
-          key: ScheduleCommandArgs.TASK_NAME,
+          key: ScheduleCommandArgs.DESCRIPTION,
           prompt,
           type: 'string',
         },
@@ -43,16 +45,21 @@ class ScheduleCommand extends Command {
           prompt,
           type: 'string',
         },
-        // {
-        //   key: PlanCommandArgs.TIME_TYPE, // TODO can prob use more advanced commando type here
-        //   prompt,
-        //   type: 'string',
-        // },
+        {
+          key: ScheduleCommandArgs.TIME_TYPE, // TODO can prob use more advanced commando type here
+          prompt,
+          type: 'string',
+        },
         // {
         //   key: PlanCommandArgs.TIME_ZONE,
         //   prompt,
         //   type: 'string',
         // },
+        {
+          key: ScheduleCommandArgs.REMINDER,
+          prompt,
+          type: 'string',
+        },
         {
           key: ScheduleCommandArgs.COST,
           prompt,
@@ -67,45 +74,59 @@ class ScheduleCommand extends Command {
     });
   }
 
-  // event name
-  // - date
-  // - time
-  // - frequency (once, daily, weekly, custom)
-  // - penalty amount ($)
-  // - partner (use discord @)
-
-  // TODO handle input validation
   async run(msg: CommandoMessage, args: Record<ScheduleCommandArgs, string>) {
-    const { taskName, date, time, cost } = args;
+    const { description, date, time, timeType, cost, reminderMinutes } = args;
+    console.log('schedule args', args);
 
     // add user
     if (!userService.contains(msg.author.id)) {
       userService.add({ id: msg.author.id });
     }
 
-    // compute date
-    const dueDate = DateTime.fromISO(`${date}T${time}`, {
-      zone: 'America/Los_Angeles', // TODO change to use user input
-    });
-
-    // get partner
-    const taggedUser = msg.mentions.users.first();
-    if (!taggedUser) {
-      return msg.reply('No partner user was mentioned!');
+    // check description
+    if (description.trim().length <= 0) {
+      return msg.reply('Task description was not given!');
     }
 
-    // add task TODO handle errors
+    // check date
+    const dueDate = dayjs(
+      `${date}/2021 ${time} ${timeType}`, // TODO use current year (not hardcoded)
+      ['MM/DD/YYYY h:mm A', 'MM/DD/YYYY h:mm a'], // TODO add more accepted formats
+      true,
+    ).tz('America/Los_Angeles'); // TODO should accept user input
+    if (!dueDate.isValid()) {
+      return msg.reply('Date was not formatted properly!');
+    }
+
+    // check reminder
+    const parsedReminderMinutes = Number(reminderMinutes);
+    if (isNaN(parsedReminderMinutes)) {
+      return msg.reply("Given reminder time isn't a valid number!");
+    }
+
+    // check cost
+    const parsedCost = Number(cost);
+    if (isNaN(parsedCost)) {
+      return msg.reply("Given cost isn't a valid number!");
+    }
+
+    // check partner
+    const taggedUser = msg.mentions.users.first();
+    if (!taggedUser) {
+      return msg.reply('Accountability partner was not mentioned!');
+    }
+
+    // add task
+    // TODO handle errors
     await taskService.add({
       authorID: msg.author.id,
       partnerID: taggedUser.id,
       channelID: msg.channel.id,
-      cost: Number(cost),
-      name: taskName,
-      dueDate: dueDate.toJSDate(),
+      cost: parsedCost,
+      name: description,
+      dueDate: dueDate.toDate(),
+      reminderMinutes: parsedReminderMinutes,
     });
-
-    logger.info('users', userService.getAll());
-    logger.info('tasks', await taskService.getAll());
 
     return msg.reply('Task scheduled successfully!');
   }

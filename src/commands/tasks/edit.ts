@@ -10,7 +10,7 @@ import {
   TimeoutError,
 } from '../../bot/errors';
 import ListCommand from './list';
-import TaskEditMessenger from '../../bot/messengers/TaskEditMessenger';
+// import TaskEditMessenger from '../../bot/messengers/TaskEditMessenger';
 import logger from '../../lib/logger';
 
 enum EditCommandArgs {
@@ -63,8 +63,9 @@ class EditCommand extends Command {
       const channel = await this.client.channels.fetch(task.channelID);
       if (!channel.isText()) return msg.reply('oops');
 
-      const taskEditMessenger = new TaskEditMessenger(task, channel, msg);
-      await taskEditMessenger.prompt();
+      // TODO do this lol
+      // const taskEditMessenger = new TaskEditMessenger(task, channel, msg);
+      // await taskEditMessenger.prompt();
 
       return null;
     } catch (e) {
