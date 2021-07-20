@@ -90,36 +90,37 @@ export default class Bot {
       taskCheckInMessenger.prompt(); // async
     }
 
-    // Check for tasks that need reminding
-    const sentReminderTaskIds: string[] = [];
-    const reminderTasks = await taskService.getReminderTasks(new Date());
-    logger.info('  Reminder tasks:', reminderTasks);
-    for (const reminderTask of reminderTasks) {
-      if (!reminderTask.reminderOffset) continue;
+    // TODO consider how to handle users editing reminders
+    // // Check for tasks that need reminding
+    // const sentReminderTaskIds: string[] = [];
+    // const reminderTasks = await taskService.getReminderTasks(new Date());
+    // logger.info('  Reminder tasks:', reminderTasks);
+    // for (const reminderTask of reminderTasks) {
+    //   if (!reminderTask.reminderOffset) continue;
 
-      const channel = await this.client.channels.fetch(reminderTask.channelID);
-      if (!channel.isText()) continue; // TODO sentry
+    //   const channel = await this.client.channels.fetch(reminderTask.channelID);
+    //   if (!channel.isText()) continue; // TODO sentry
 
-      channel.send(
-        `${formatMention(
-          reminderTask.userDiscordID,
-        )} ‼️ REMINDER ‼️ your task "${reminderTask.name}" is due in **${
-          reminderTask.reminderOffset / (60 * 1000)
-        }** minutes @ ${reminderTask.dueDate.toLocaleString()}`,
-      ); // async
+    //   channel.send(
+    //     `${formatMention(
+    //       reminderTask.userDiscordID,
+    //     )} ‼️ REMINDER ‼️ your task "${reminderTask.name}" is due in **${
+    //       reminderTask.reminderOffset / (60 * 1000)
+    //     }** minutes @ ${reminderTask.dueDate.toLocaleString()}`,
+    //   ); // async
 
-      // TODO might need this depending on how you decide to update wasReminded flag
-      // .then(() => {
-      //   sentReminderTaskIds.push(reminderTask.id)
-      // })
-      // .catch(e => {
-      //   console.error(e)
-      //   // TODO sentry + log into file
-      // })
-    }
-
-    // if (sentReminderTaskIds.length > 0) {
-    //   taskService.updateMany(sentReminderTaskIds, { wasReminded: true })
+    //   // TODO might need this depending on how you decide to update wasReminded flag
+    //   // .then(() => {
+    //   //   sentReminderTaskIds.push(reminderTask.id)
+    //   // })
+    //   // .catch(e => {
+    //   //   console.error(e)
+    //   //   // TODO sentry + log into file
+    //   // })
     // }
+
+    // // if (sentReminderTaskIds.length > 0) {
+    // //   taskService.updateMany(sentReminderTaskIds, { wasReminded: true })
+    // // }
   }
 }

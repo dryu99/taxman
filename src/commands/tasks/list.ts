@@ -73,7 +73,7 @@ class ListCommand extends Command {
           **DUE @ ${task.dueDate.toLocaleString()}**
           ID: \`${task.id}\`
           Money at stake: $${task.cost}
-          Accountability Partner: ${formatMention(task.partnerUserDiscordID)}
+          Accountability Partner: ${formatMention(task.userDiscordID)}
         `,
       }));
 

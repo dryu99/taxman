@@ -19,7 +19,10 @@ const getAuthorTasks = async (
   authorID: string,
   filter: Partial<Task>,
 ): Promise<Task[]> => {
-  const tasks = await TaskModel.find({ userDiscordID: authorID, ...filter });
+  const tasks = await TaskModel.find({
+    userDiscordID: authorID,
+    ...filter,
+  });
   return tasks;
 };
 
@@ -29,7 +32,6 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
     dueDate: { $lte: currDate },
     status: TaskStatus.PENDING,
   });
-
   // Update task check flags
   const dueTaskPromises: Promise<TaskDocument>[] = [];
   for (const dueTask of dueTasks) {
@@ -52,19 +54,19 @@ const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
         name: true,
         dueDate: true,
         cost: true,
-        reminderOffset: true,
+        reminderTimeOffset: true,
         userDiscordID: true,
         partnerUserDiscordID: true,
         channelID: true,
         status: true,
         wasReminded: true,
-        reminderAt: { $subtract: ['$dueDate', '$reminderOffset'] },
+        reminderAt: { $subtract: ['$dueDate', '$reminderTimeOffset'] },
       },
     },
     {
       $match: {
         wasReminded: false,
-        reminderOffset: { $ne: null },
+        reminderTimeOffset: { $ne: null },
         reminderAt: { $ne: null, $lte: currDate },
         status: TaskStatus.PENDING,
       },

@@ -1,12 +1,11 @@
 import mongoose from 'mongoose';
-mongoose.set('useFindAndModify', false);
+import { MongoModel } from '../types';
 
-export interface Settings {
-  id: string; // TODO maybe id should be guild id
+export interface Settings extends MongoModel {
   guildID: string;
-  penaltyPeriodMinutes: number; // min before task due dates where users can't cancel/edit tasks // TODO rename to penaltyPeriod or sth
-  reactionTimeoutMinutes: number;
-  // TODO guildName?
+  gracePeriodEndOffset: number; // millisecs before task due dates where users can't cancel/edit tasks
+  reactionTimeoutLength: number; // millisecs
+  // max_cancels_per_user
 }
 
 const settingsSchema = new mongoose.Schema<Settings>(
@@ -15,27 +14,19 @@ const settingsSchema = new mongoose.Schema<Settings>(
       type: String,
       required: true,
     },
-    penaltyPeriodMinutes: {
+    gracePeriodEndOffset: {
       type: Number,
       required: true,
-      default: 12 * 60, // 12 hours
+      default: 12 * 60 * 60 * 1000, // 12 hours
     },
-    reactionTimeoutMinutes: {
+    reactionTimeoutLength: {
       type: Number,
       required: true,
-      default: 5,
+      default: 5 * 60 * 1000, // 5 min
     },
   },
   { timestamps: true },
 );
-
-settingsSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString();
-    delete returnedObject._id;
-    delete returnedObject.__v;
-  },
-});
 
 const SettingsModel = mongoose.model<Settings>('Settings', settingsSchema);
 

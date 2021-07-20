@@ -1,4 +1,5 @@
-import mongoose, { Document } from 'mongoose';
+import { Document, Schema, model } from 'mongoose';
+import { MongoModel } from '../types';
 
 export enum TaskStatus {
   PENDING = 'pending', // task that has yet to be checked-in
@@ -13,38 +14,37 @@ export interface NewTask {
   dueDate: Date; // TODO rename to deadline / dueAt
   cost?: number; // TODO rename to payout? stakes?
   userDiscordID: string;
-  memberDiscordID?: string; // this is optional b/c we users might create tasks through DM (instead of guild)
   partnerUserDiscordID: string;
-  partnerMemberDiscordID?: string; // this is optional b/c we users might partner up through DM (instead of guild)
   channelID: string;
-  reminderOffset?: number;
+  guildID: string;
+  reminderTimeOffset?: number;
+  // user: User;
+  // member?: Member;
+  // partnerUser: User;
+  // partnerMember?: Member;
   // TODO guildID
   // frequency
   // reminderMinutes
   // TODO isChargeable
 }
 
-export interface Task extends NewTask {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
+export interface Task extends NewTask, MongoModel {
   status: TaskStatus;
   wasReminded: boolean; // TODO rename lmao
 }
 
 export type TaskDocument = Task & Document<any, any, Task>;
 
-const taskSchema = new mongoose.Schema<Task>(
+export const taskSchema = new Schema<Task>(
   {
     name: { type: String, required: true, trim: true },
     dueDate: { type: Date, required: true },
     userDiscordID: { type: String, required: true },
-    memberDiscordID: { type: String },
     partnerUserDiscordID: { type: String, required: true },
-    partnerMemberDiscordID: { type: String },
     channelID: { type: String, required: true },
+    guildID: { type: String, required: true },
     cost: { type: Number },
-    reminderOffset: { type: Number },
+    reminderTimeOffset: { type: Number },
     wasReminded: { type: Boolean, required: true, default: false },
     status: {
       type: String,
@@ -61,6 +61,6 @@ const taskSchema = new mongoose.Schema<Task>(
 //   return this.name + '!';
 // };
 
-const TaskModel = mongoose.model<Task>('Task', taskSchema);
+const TaskModel = model<Task>('Task', taskSchema);
 
 export default TaskModel;

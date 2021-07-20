@@ -1,19 +1,15 @@
 import { Document, Schema, model } from 'mongoose';
+import { MongoModel } from '../types';
 
-export interface User {
+export interface User extends MongoModel {
   discordID: string;
   // isStripeRegistered: boolean;
   // stripeID
-
-  // mongo props
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export type UserDocument = User & Document<any, any, User>;
 
-const userSchema = new Schema<User>(
+export const userSchema = new Schema<User>(
   {
     discordID: { type: String, required: true },
   },

@@ -1,23 +1,19 @@
 import { Document, Schema, model } from 'mongoose';
-import { User } from './UserModel';
+import { MongoModel } from '../types';
 
-export interface Member {
-  discordID: string;
-  user: User;
-  // guild: Guild
-
-  // mongo props
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
+export interface Member extends MongoModel {
+  discordUserID: string;
+  guildID: string;
+  // role_fields
+  // freebies
 }
 
 export type MemberDocument = Member & Document<any, any, Member>;
 
-const memberSchema = new Schema<Member>(
+export const memberSchema = new Schema<Member>(
   {
-    discordID: { type: String, required: true },
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    discordUserID: { type: String, required: true },
+    guildID: { type: String, required: true },
   },
   { timestamps: true },
 );

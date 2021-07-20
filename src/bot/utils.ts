@@ -18,10 +18,9 @@ export const formatMention = (id: string) => {
 };
 
 export const hasGracePeriodEnded = (task: Task, settings: Settings) => {
-  const penaltyPeriodsMillisecs = settings.penaltyPeriodMinutes * 60 * 1000;
-  const gracePeriodStart = task.dueDate.getTime() - penaltyPeriodsMillisecs;
+  const gracePeriodEnd = task.dueDate.getTime() - settings.gracePeriodEndOffset;
 
-  return Date.now() >= gracePeriodStart; // TODO will timezones affect this...
+  return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
 
 export const createTaskEmbed = (

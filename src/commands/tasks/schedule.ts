@@ -19,6 +19,8 @@ enum ScheduleCommandArgs {
 const prompt =
   'Format is: <Description> <MM/DD> <HH:MM> <AM/PM> <Reminder (x minutes before)> <Cost> <@Partner>';
 
+// TODO when user tries to do ANY command, should have a check to see if they exist in db.
+//      check both user + member collection. add them if they dont exist.
 class ScheduleCommand extends Command {
   static DEFAULT_CMD_NAME = 'schedule';
 
@@ -120,14 +122,13 @@ class ScheduleCommand extends Command {
     // TODO handle errors
     await taskService.add({
       userDiscordID: msg.author.id,
-      memberDiscordID: msg?.member?.id,
       partnerUserDiscordID: taggedUser.id,
-      partnerMemberDiscordID: msg.guild.member(taggedUser)?.id, // TODO have to test (look into documentation)
       channelID: msg.channel.id,
+      guildID: msg.guild.id,
       cost: parsedCost,
       name: description,
       dueDate: dueDate.toDate(),
-      reminderOffset: parsedReminderMinutes * 60 * 1000,
+      reminderTimeOffset: parsedReminderMinutes * 60 * 1000,
     });
 
     return msg.reply('Task scheduled successfully!');
