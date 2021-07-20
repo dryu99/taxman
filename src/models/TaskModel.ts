@@ -12,15 +12,15 @@ export interface NewTask {
   name: string; // tODO rename to title? description? make sure to change edit command embeds lol
   dueDate: Date; // TODO rename to deadline / dueAt
   cost?: number; // TODO rename to payout? stakes?
-  userDiscordID: string; // TODO userDiscordID
-  partnerUserDiscordID: string; // TODO partnerDiscordID
+  userDiscordID: string;
+  memberDiscordID?: string; // this is optional b/c we users might create tasks through DM (instead of guild)
+  partnerUserDiscordID: string;
+  partnerMemberDiscordID?: string; // this is optional b/c we users might partner up through DM (instead of guild)
   channelID: string;
-  reminderOffset?: number; // milliseconds TODO rename to
-  // memberDiscordID: string;
+  reminderOffset?: number;
   // TODO guildID
   // frequency
   // reminderMinutes
-  // discordGuildMemberID
   // TODO isChargeable
 }
 
@@ -36,38 +36,16 @@ export type TaskDocument = Task & Document<any, any, Task>;
 
 const taskSchema = new mongoose.Schema<Task>(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    dueDate: {
-      type: Date,
-      required: true,
-    },
-    authorID: {
-      type: String,
-      required: true,
-    },
-    partnerID: {
-      type: String,
-      required: true,
-    },
-    channelID: {
-      type: String,
-      required: true,
-    },
-    cost: {
-      type: Number,
-    },
-    reminderOffset: {
-      type: Number,
-    },
-    wasReminded: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
+    name: { type: String, required: true, trim: true },
+    dueDate: { type: Date, required: true },
+    userDiscordID: { type: String, required: true },
+    memberDiscordID: { type: String },
+    partnerUserDiscordID: { type: String, required: true },
+    partnerMemberDiscordID: { type: String },
+    channelID: { type: String, required: true },
+    cost: { type: Number },
+    reminderOffset: { type: Number },
+    wasReminded: { type: Boolean, required: true, default: false },
     status: {
       type: String,
       enum: Object.values(TaskStatus),

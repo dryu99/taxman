@@ -54,7 +54,7 @@ const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
         cost: true,
         reminderOffset: true,
         userDiscordID: true,
-        partnerID: true,
+        partnerUserDiscordID: true,
         channelID: true,
         status: true,
         wasReminded: true,

@@ -120,7 +120,9 @@ class ScheduleCommand extends Command {
     // TODO handle errors
     await taskService.add({
       userDiscordID: msg.author.id,
+      memberDiscordID: msg?.member?.id,
       partnerUserDiscordID: taggedUser.id,
+      partnerMemberDiscordID: msg.guild.member(taggedUser)?.id, // TODO have to test (look into documentation)
       channelID: msg.channel.id,
       cost: parsedCost,
       name: description,
