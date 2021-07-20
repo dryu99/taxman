@@ -18,7 +18,7 @@ dayjs.extend(customParseFormat);
 const main = async () => {
   // Setup db
   try {
-    await mongoose.connect(process.env.MONGODB_URI as string, {
+    await mongoose.connect(process.env.MONGODB_LOCAL_URI as string, {
       // TODO remove typescript force
       useNewUrlParser: true,
       useUnifiedTopology: true,
