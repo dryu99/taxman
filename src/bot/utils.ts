@@ -52,7 +52,7 @@ export const createTaskEmbed = (
       },
       {
         name: 'Accountability Partner',
-        value: formatMention(task.partnerID),
+        value: formatMention(task.partnerUserDiscordID),
       },
       {
         name: 'Money at stake',

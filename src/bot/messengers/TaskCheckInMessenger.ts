@@ -67,7 +67,7 @@ export default class TaskCheckInMessenger extends Messenger {
           },
           {
             name: 'Accountability Partner',
-            value: formatMention(this.task.partnerID),
+            value: formatMention(this.task.partnerUserDiscordID),
           },
           {
             name: 'Money at stake',
@@ -116,7 +116,7 @@ export default class TaskCheckInMessenger extends Messenger {
       .setTitle(`Task Check-In: Partner Confirmation`)
       .setDescription(
         `${formatMention(
-          this.task.partnerID,
+          this.task.partnerUserDiscordID,
         )} Please confirm that ${formatMention(
           this.task.userDiscordID,
         )} has completed their task. 
@@ -128,7 +128,7 @@ export default class TaskCheckInMessenger extends Messenger {
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
-        this.task.partnerID,
+        this.task.partnerUserDiscordID,
         reactionTimeLimitMinutes, // TODO pass settings time
       );
 

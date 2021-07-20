@@ -13,7 +13,7 @@ export interface NewTask {
   dueDate: Date; // TODO rename to deadline / dueAt
   cost?: number; // TODO rename to payout? stakes?
   userDiscordID: string; // TODO userDiscordID
-  partnerID: string; // TODO partnerDiscordID
+  partnerUserDiscordID: string; // TODO partnerDiscordID
   channelID: string;
   reminderOffset?: number; // milliseconds TODO rename to
   // memberDiscordID: string;
