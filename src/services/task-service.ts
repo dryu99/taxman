@@ -1,5 +1,5 @@
 import TaskModel, {
-  MongoTask,
+  TaskDocument,
   NewTask,
   Task,
   TaskStatus,
@@ -7,12 +7,12 @@ import TaskModel, {
 
 const getAll = async (): Promise<Task[]> => {
   const tasks = await TaskModel.find({});
-  return tasks.map((task) => task.toJSON());
+  return tasks;
 };
 
 const getByID = async (taskID: string): Promise<Task | undefined> => {
   const task = await TaskModel.findById(taskID);
-  return task?.toJSON();
+  return task || undefined;
 };
 
 const getAuthorTasks = async (
@@ -20,7 +20,7 @@ const getAuthorTasks = async (
   filter: Partial<Task>,
 ): Promise<Task[]> => {
   const tasks = await TaskModel.find({ authorID, ...filter });
-  return tasks.map((task) => task.toJSON());
+  return tasks;
 };
 
 // TODO should prob think of some caching mechanism cause this gets fired so frequently lol
@@ -31,15 +31,14 @@ const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   });
 
   // Update task check flags
-  const dueTaskPromises: Promise<MongoTask>[] = [];
+  const dueTaskPromises: Promise<TaskDocument>[] = [];
   for (const dueTask of dueTasks) {
     dueTask.status = TaskStatus.CHECKED;
     dueTaskPromises.push(dueTask.save());
   }
 
   const updatedDueTasks = await Promise.all(dueTaskPromises);
-
-  return updatedDueTasks.map((task) => task.toJSON()); // TODO have to call toJson here??
+  return updatedDueTasks;
 };
 
 // task_schema_check
@@ -86,7 +85,7 @@ const add = async (newTask: NewTask): Promise<Task> => {
   });
 
   const savedTask = await task.save();
-  return savedTask.toJSON();
+  return savedTask;
 };
 
 const update = async (
@@ -96,7 +95,7 @@ const update = async (
   const updatedTask = await TaskModel.findByIdAndUpdate(taskID, newProps, {
     new: true,
   });
-  return updatedTask?.toJSON();
+  return updatedTask || undefined;
 };
 
 const updateMany = async (

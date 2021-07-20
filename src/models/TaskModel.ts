@@ -31,7 +31,7 @@ export interface Task extends NewTask {
   wasReminded: boolean; // TODO rename lmao
 }
 
-export type MongoTask = Task & Document<any, any, Task>;
+export type TaskDocument = Task & Document<any, any, Task>;
 
 // set up schema blueprint
 const taskSchema = new mongoose.Schema<Task>(
@@ -76,14 +76,6 @@ const taskSchema = new mongoose.Schema<Task>(
   },
   { timestamps: true },
 );
-
-taskSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString();
-    delete returnedObject._id;
-    delete returnedObject.__v;
-  },
-});
 
 // TODO stretch goal: make schema instance methods https://medium.com/@agentwhs/complete-guide-for-typescript-for-mongoose-for-node-js-8cc0a7e470c1
 // taskSchema.methods.hasGracePeriodEnded = function (this: Task) {
