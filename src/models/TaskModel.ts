@@ -1,5 +1,4 @@
 import mongoose, { Document } from 'mongoose';
-mongoose.set('useFindAndModify', false);
 
 export enum TaskStatus {
   PENDING = 'pending', // task that has yet to be checked-in
@@ -13,10 +12,11 @@ export interface NewTask {
   name: string; // tODO rename to title? description? make sure to change edit command embeds lol
   dueDate: Date; // TODO rename to deadline / dueAt
   cost?: number; // TODO rename to payout? stakes?
-  authorID: string; // TODO consider changing to userID or discordUserID
-  partnerID: string;
+  userDiscordID: string; // TODO userDiscordID
+  partnerID: string; // TODO partnerDiscordID
   channelID: string;
   reminderOffset?: number; // milliseconds TODO rename to
+  // memberDiscordID: string;
   // TODO guildID
   // frequency
   // reminderMinutes
@@ -26,14 +26,14 @@ export interface NewTask {
 
 export interface Task extends NewTask {
   id: string;
-  createdAt: number; // TODO check to see if this is actualy being created
+  createdAt: Date;
+  updatedAt: Date;
   status: TaskStatus;
   wasReminded: boolean; // TODO rename lmao
 }
 
 export type TaskDocument = Task & Document<any, any, Task>;
 
-// set up schema blueprint
 const taskSchema = new mongoose.Schema<Task>(
   {
     name: {

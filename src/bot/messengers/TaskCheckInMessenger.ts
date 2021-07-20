@@ -53,7 +53,7 @@ export default class TaskCheckInMessenger extends Messenger {
         .setTitle('Task Check-In')
         .setDescription(
           `
-          ${formatMention(this.task.authorID)} Your task is due!
+          ${formatMention(this.task.userDiscordID)} Your task is due!
           Have you completed it?
           Remember to provide photographic proof for your accountability partner! 
           You have ${reactionTimeLimitMinutes} minutes to respond.
@@ -76,13 +76,13 @@ export default class TaskCheckInMessenger extends Messenger {
         );
 
       const reactMsg = await this.channel.send(
-        `${formatMention(this.task.authorID)} ‼️ TASK CHECK-IN ‼️`,
+        `${formatMention(this.task.userDiscordID)} ‼️ TASK CHECK-IN ‼️`,
         { embed: reactEmbed },
       );
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
-        this.task.authorID,
+        this.task.userDiscordID,
         reactionTimeLimitMinutes, // TODO pass settings time limit here
       );
 
@@ -118,7 +118,7 @@ export default class TaskCheckInMessenger extends Messenger {
         `${formatMention(
           this.task.partnerID,
         )} Please confirm that ${formatMention(
-          this.task.authorID,
+          this.task.userDiscordID,
         )} has completed their task. 
         You have ${reactionTimeLimitMinutes} minutes to respond.`,
       );
@@ -165,7 +165,7 @@ export default class TaskCheckInMessenger extends Messenger {
       .setTitle(`Task Check-In: Success`)
       .setDescription(
         `${formatMention(
-          this.task.authorID,
+          this.task.userDiscordID,
         )} Great job, you have evaded the taxman!`,
       );
 
@@ -182,7 +182,7 @@ export default class TaskCheckInMessenger extends Messenger {
       .setTitle(`Task Check-In: Failure`)
       .setDescription(
         `${formatMention(
-          this.task.authorID,
+          this.task.userDiscordID,
         )} The taxman got you... Your stripe account will be charged $${
           this.task.cost
         } within the next few days.`,

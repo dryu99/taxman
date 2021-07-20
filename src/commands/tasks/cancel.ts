@@ -48,7 +48,7 @@ class CancelCommand extends Command {
       if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
       if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
 
-      if (task.authorID !== msg.author.id)
+      if (task.userDiscordID !== msg.author.id)
         return msg.reply(`You can't cancel other people's tasks!`);
 
       if (task.status !== TaskStatus.PENDING)

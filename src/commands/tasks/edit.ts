@@ -49,7 +49,7 @@ class EditCommand extends Command {
       if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
       if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
 
-      if (task.authorID !== msg.author.id)
+      if (task.userDiscordID !== msg.author.id)
         return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
 
       if (task.status !== TaskStatus.PENDING)

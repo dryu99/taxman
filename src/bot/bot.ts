@@ -101,9 +101,9 @@ export default class Bot {
       if (!channel.isText()) continue; // TODO sentry
 
       channel.send(
-        `${formatMention(reminderTask.authorID)} ‼️ REMINDER ‼️ your task "${
-          reminderTask.name
-        }" is due in **${
+        `${formatMention(
+          reminderTask.userDiscordID,
+        )} ‼️ REMINDER ‼️ your task "${reminderTask.name}" is due in **${
           reminderTask.reminderOffset / (60 * 1000)
         }** minutes @ ${reminderTask.dueDate.toLocaleString()}`,
       ); // async

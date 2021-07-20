@@ -19,7 +19,7 @@ const getAuthorTasks = async (
   authorID: string,
   filter: Partial<Task>,
 ): Promise<Task[]> => {
-  const tasks = await TaskModel.find({ authorID, ...filter });
+  const tasks = await TaskModel.find({ userDiscordID: authorID, ...filter });
   return tasks;
 };
 
@@ -53,7 +53,7 @@ const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
         dueDate: true,
         cost: true,
         reminderOffset: true,
-        authorID: true,
+        userDiscordID: true,
         partnerID: true,
         channelID: true,
         status: true,
