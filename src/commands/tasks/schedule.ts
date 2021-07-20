@@ -125,9 +125,9 @@ class ScheduleCommand extends Command {
       partnerUserDiscordID: taggedUser.id,
       channelID: msg.channel.id,
       guildID: msg.guild.id,
-      cost: parsedCost,
-      name: description,
-      dueDate: dueDate.toDate(),
+      stakes: parsedCost,
+      description,
+      dueAt: dueDate.toDate(),
       reminderTimeOffset: parsedReminderMinutes * 60 * 1000,
     });
 

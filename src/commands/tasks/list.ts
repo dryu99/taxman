@@ -68,11 +68,11 @@ class ListCommand extends Command {
     // TODO only show DUE @ text for upcoming tasks (ow just use 'Due Date:' text)
     if (tasks.length > 0) {
       const fields = tasks.map((task, i) => ({
-        name: `\`${i + 1}.\`  ${task.name}`,
+        name: `\`${i + 1}.\`  ${task.description}`,
         value: `
-          **DUE @ ${task.dueDate.toLocaleString()}**
+          **DUE @ ${task.dueAt.toLocaleString()}**
           ID: \`${task.id}\`
-          Money at stake: $${task.cost}
+          Money at stake: $${task.stakes}
           Accountability Partner: ${formatMention(task.userDiscordID)}
         `,
       }));

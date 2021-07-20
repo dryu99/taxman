@@ -29,7 +29,7 @@ const getAuthorTasks = async (
 // TODO should prob think of some caching mechanism cause this gets fired so frequently lol
 const getDueTasks = async (currDate: Date): Promise<Task[]> => {
   const dueTasks = await TaskModel.find({
-    dueDate: { $lte: currDate },
+    dueAt: { $lte: currDate },
     status: TaskStatus.PENDING,
   });
   // Update task check flags
@@ -51,16 +51,16 @@ const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
         // TODO how to improve typing here...
         _id: false,
         id: '$_id',
-        name: true,
-        dueDate: true,
-        cost: true,
+        description: true,
+        dueAt: true,
+        stakes: true,
         reminderTimeOffset: true,
         userDiscordID: true,
         partnerUserDiscordID: true,
         channelID: true,
         status: true,
         wasReminded: true,
-        reminderAt: { $subtract: ['$dueDate', '$reminderTimeOffset'] },
+        reminderAt: { $subtract: ['$dueAt', '$reminderTimeOffset'] },
       },
     },
     {

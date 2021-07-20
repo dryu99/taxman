@@ -60,10 +60,10 @@ export default class TaskCheckInMessenger extends Messenger {
         `,
         )
         .addFields(
-          { name: 'Task Description', value: this.task.name },
+          { name: 'Task Description', value: this.task.description },
           {
             name: 'Deadline',
-            value: this.task.dueDate.toDateString(), // TODO include time
+            value: this.task.dueAt.toDateString(), // TODO include time
           },
           {
             name: 'Accountability Partner',
@@ -71,7 +71,7 @@ export default class TaskCheckInMessenger extends Messenger {
           },
           {
             name: 'Money at stake',
-            value: `$${this.task.cost}`,
+            value: `$${this.task.stakes}`,
           },
         );
 
@@ -184,7 +184,7 @@ export default class TaskCheckInMessenger extends Messenger {
         `${formatMention(
           this.task.userDiscordID,
         )} The taxman got you... Your stripe account will be charged $${
-          this.task.cost
+          this.task.stakes
         } within the next few days.`,
       )
       .addFields({ name: 'Reason', value: reason });

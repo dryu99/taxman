@@ -10,9 +10,9 @@ export enum TaskStatus {
 }
 
 export interface NewTask {
-  name: string; // tODO rename to title? description? make sure to change edit command embeds lol
-  dueDate: Date; // TODO rename to deadline / dueAt
-  cost?: number; // TODO rename to payout? stakes?
+  description: string; // tODO rename to title? description? make sure to change edit command embeds lol
+  dueAt: Date; // TODO rename to deadline / dueAt
+  stakes?: number; // $ amount
   userDiscordID: string;
   partnerUserDiscordID: string;
   channelID: string;
@@ -37,13 +37,13 @@ export type TaskDocument = Task & Document<any, any, Task>;
 
 export const taskSchema = new Schema<Task>(
   {
-    name: { type: String, required: true, trim: true },
-    dueDate: { type: Date, required: true },
+    description: { type: String, required: true, trim: true },
+    dueAt: { type: Date, required: true },
     userDiscordID: { type: String, required: true },
     partnerUserDiscordID: { type: String, required: true },
     channelID: { type: String, required: true },
     guildID: { type: String, required: true },
-    cost: { type: Number },
+    stakes: { type: Number },
     reminderTimeOffset: { type: Number },
     wasReminded: { type: Boolean, required: true, default: false },
     status: {

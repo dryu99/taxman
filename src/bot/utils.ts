@@ -18,7 +18,7 @@ export const formatMention = (id: string) => {
 };
 
 export const hasGracePeriodEnded = (task: Task, settings: Settings) => {
-  const gracePeriodEnd = task.dueDate.getTime() - settings.gracePeriodEndOffset;
+  const gracePeriodEnd = task.dueAt.getTime() - settings.gracePeriodEndOffset;
 
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
@@ -43,11 +43,11 @@ export const createTaskEmbed = (
       // },
       {
         name: 'Task',
-        value: task.name,
+        value: task.description,
       },
       {
         name: 'Due Date',
-        value: task.dueDate.toLocaleString(),
+        value: task.dueAt.toLocaleString(),
       },
       {
         name: 'Accountability Partner',
@@ -55,7 +55,7 @@ export const createTaskEmbed = (
       },
       {
         name: 'Money at stake',
-        value: `$${task.cost}`,
+        value: `$${task.stakes}`,
       },
     );
 
