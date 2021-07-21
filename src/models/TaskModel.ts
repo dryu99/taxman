@@ -9,22 +9,31 @@ export enum TaskStatus {
   CANCELLED = 'cancelled', // task that has been cancelled
 }
 
+export enum TaskFrequency {
+  ONCE = 'once',
+  RECURRING = 'recurring',
+  CUSTOM_WEEKLY = 'custom_weekly',
+  CUSTOM_MONTHLY = 'custom_monthly',
+}
+
 export interface NewTask {
-  description: string; // tODO rename to title? description? make sure to change edit command embeds lol
-  dueAt: Date; // TODO rename to deadline / dueAt
+  metaID: string; // multiple ScheduledTasks can belong to same TaskMeta
+  description: string;
+  dueAt: Date;
   stakes?: number; // $ amount
   userDiscordID: string;
   partnerUserDiscordID: string;
   channelID: string;
   guildID: string;
   reminderTimeOffset?: number;
-  // user: User;
-  // member?: Member;
-  // partnerUser: User;
-  // partnerMember?: Member;
-  // TODO guildID
-  // frequency
-  // reminderMinutes
+  frequency: {
+    type: TaskFrequency;
+    interval?: number; //  milliseconds (only with periodic)
+    hour?: number; // only with weekly | monthly
+    minute?: number; // only with weekly | monthly
+    weekDays?: number[]; // 1-7 only with weekly
+    monthDays?: number[]; // 1-31  only with monthly
+  };
   // TODO isChargeable
 }
 
@@ -37,15 +46,23 @@ export type TaskDocument = Task & Document<any, any, Task>;
 
 export const taskSchema = new Schema<Task>(
   {
+    metaID: { type: String, required: true }, // ref
     description: { type: String, required: true, trim: true },
     dueAt: { type: Date, required: true },
-    userDiscordID: { type: String, required: true },
-    partnerUserDiscordID: { type: String, required: true },
+    userDiscordID: { type: String, required: true }, // ref
+    partnerUserDiscordID: { type: String, required: true }, // ref
     channelID: { type: String, required: true },
-    guildID: { type: String, required: true },
+    guildID: { type: String, required: true }, // ref
     stakes: { type: Number },
     reminderTimeOffset: { type: Number },
-    wasReminded: { type: Boolean, required: true, default: false },
+    wasReminded: { type: Boolean, required: true, default: false }, // TODO consider not doing this, instead make a reminders collection
+    frequency: {
+      type: {
+        type: String,
+        enum: Object.values(TaskFrequency),
+        required: true,
+      },
+    },
     status: {
       type: String,
       enum: Object.values(TaskStatus),

@@ -82,10 +82,7 @@ const getReminderTasks = async (currDate: Date): Promise<Task[]> => {
 
 // TODO have to auth users for write operations (ow other users could mess with your shit)
 const add = async (newTask: NewTask): Promise<Task> => {
-  const task = new TaskModel({
-    ...newTask,
-  });
-
+  const task = new TaskModel({ ...newTask });
   const savedTask = await task.save();
   return savedTask;
 };

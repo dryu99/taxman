@@ -4,6 +4,7 @@ import logger from '../../lib/logger';
 import taskService from '../../services/task-service';
 import userService from '../../services/user-service';
 import dayjs from 'dayjs';
+import { TaskFrequency } from '../../models/TaskModel';
 
 enum ScheduleCommandArgs {
   DESCRIPTION = 'description',
@@ -121,6 +122,7 @@ class ScheduleCommand extends Command {
     // add task
     // TODO handle errors
     await taskService.add({
+      metaID: Date.now() + Math.random() + '', // TODO use 3rd party lib
       userDiscordID: msg.author.id,
       partnerUserDiscordID: taggedUser.id,
       channelID: msg.channel.id,
@@ -129,7 +131,16 @@ class ScheduleCommand extends Command {
       description,
       dueAt: dueDate.toDate(),
       reminderTimeOffset: parsedReminderMinutes * 60 * 1000,
+      frequency: {
+        type: TaskFrequency.ONCE,
+      },
     });
+
+    // reminderService.add({
+    //   taskID: task.id
+    //   remindAt: task.dueDate - reminderTimeOffset or sth
+    //   taskDescription: task.description
+    // })
 
     return msg.reply('Task scheduled successfully!');
   }

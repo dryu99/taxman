@@ -52,6 +52,7 @@ export default class Bot {
     });
   }
 
+  // TODO might need to handle case where this fires before client is ready
   public async start(): Promise<string | void> {
     // TODO do sth like this for better interval handling https://stackoverflow.com/questions/52184291/async-await-with-setinterval
     //      also should be like 10 sec or sth lol
