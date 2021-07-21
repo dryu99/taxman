@@ -1,8 +1,12 @@
 import { Document, Schema, model } from 'mongoose';
 import { MongoModel } from '../types';
 
-export interface User extends MongoModel {
+// TODO if you decide to stick with mongo, consider embedding member data in this model
+export interface NewUser {
   discordID: string;
+}
+
+export interface User extends NewUser, MongoModel {
   // isStripeRegistered: boolean;
   // stripeID
 }

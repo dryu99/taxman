@@ -1,9 +1,12 @@
 import { Document, Schema, model } from 'mongoose';
 import { MongoModel } from '../types';
 
-export interface Member extends MongoModel {
+export interface NewMember {
   discordUserID: string;
   guildID: string;
+}
+
+export interface Member extends NewMember, MongoModel {
   // role_fields
   // freebies
 }

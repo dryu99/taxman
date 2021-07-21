@@ -5,6 +5,7 @@ import taskService from '../../services/task-service';
 import userService from '../../services/user-service';
 import dayjs from 'dayjs';
 import { TaskFrequency } from '../../models/TaskModel';
+import memberService from '../../services/member-service';
 
 enum ScheduleCommandArgs {
   DESCRIPTION = 'description',
@@ -82,8 +83,22 @@ class ScheduleCommand extends Command {
     const { description, date, time, timeType, cost, reminderMinutes } = args;
 
     // add user
-    if (!userService.contains(msg.author.id)) {
-      userService.add({ id: msg.author.id });
+    const isUsedAdded = await userService.contains(msg.author.id);
+    if (!isUsedAdded) {
+      await userService.add({ discordID: msg.author.id });
+    }
+
+    // TODO can move this logic to user service if we stick with mongo and embed members in user
+    // add member
+    const isMemberAdded = await memberService.contains(
+      msg.author.id,
+      msg.guild.id,
+    );
+    if (!isMemberAdded) {
+      await memberService.add({
+        discordUserID: msg.author.id,
+        guildID: msg.guild.id,
+      });
     }
 
     // check description

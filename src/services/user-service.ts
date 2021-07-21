@@ -1,37 +1,17 @@
-import { Task } from '../models/TaskModel';
+import UserModel, { NewUser, User } from '../models/UserModel';
 
-export interface User extends NewUser {
-  tasks: Task[];
-}
-
-export interface NewUser {
-  id: string;
-  // timezone
-}
-
-const users: User[] = [];
-
-const getAll = (): User[] => {
-  return users;
+const contains = async (discordID: string): Promise<boolean> => {
+  const user = await UserModel.findOne({ discordID });
+  return user !== null;
 };
 
-const contains = (id: string): boolean => {
-  return users.findIndex((user) => user.id === id) !== -1;
-};
-
-const add = (newUser: NewUser): User => {
-  const user = {
-    ...newUser,
-    tasks: [],
-  };
-
-  users.push(user);
-
-  return user;
+const add = async (newUser: NewUser): Promise<User> => {
+  const user = new UserModel({ ...newUser });
+  const savedUser = await user.save();
+  return savedUser;
 };
 
 const userService = {
-  getAll,
   contains,
   add,
 };
