@@ -12,6 +12,7 @@
   "author": "abyssal512",
   "license": "MIT",
   "dependencies": {
+    "common-tags": "^1.8.0",
     "dayjs": "^1.10.6",
     "discord.js": "^12.5.3",
     "discord.js-commando": "^0.12.3",

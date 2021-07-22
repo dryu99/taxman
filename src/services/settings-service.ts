@@ -1,16 +1,16 @@
-import SettingsModel, { Settings } from '../models/SettingsModel';
+import GuildSettingsModel, { GuildSettings } from '../models/SettingsModel';
 
 // TODO if user kicks bot, what happens to settings in db?
 //      we should prob delete.
 
-const init = async (guildID: string): Promise<Settings> => {
+const init = async (guildID: string): Promise<GuildSettings> => {
   // replace old settings if it exists
-  const oldSettings = await SettingsModel.findOne({ guildID });
+  const oldSettings = await GuildSettingsModel.findOne({ guildID });
   if (oldSettings) {
     await oldSettings.remove();
   }
 
-  const settings = new SettingsModel({ guildID });
+  const settings = new GuildSettingsModel({ guildID });
   const savedSettings = await settings.save();
   return savedSettings;
 };
@@ -18,8 +18,10 @@ const init = async (guildID: string): Promise<Settings> => {
 // TODO implement
 const remove = async () => {};
 
-const getByGuildID = async (guildID: string): Promise<Settings | undefined> => {
-  const settings = await SettingsModel.findOne({ guildID });
+const getByGuildID = async (
+  guildID: string,
+): Promise<GuildSettings | undefined> => {
+  const settings = await GuildSettingsModel.findOne({ guildID });
   return settings || undefined; // tODO maybe throw error here since it should never happen
 };
 

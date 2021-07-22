@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Channel,
   Message,
@@ -6,7 +7,7 @@ import {
   User,
 } from 'discord.js';
 import logger from '../lib/logger';
-import { Settings } from '../models/SettingsModel';
+import { GuildSettings } from '../models/SettingsModel';
 import { NewTask, Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import { TimeoutError } from './errors';
@@ -17,10 +18,24 @@ export const formatMention = (id: string) => {
   return `<@${id}>`;
 };
 
-export const hasGracePeriodEnded = (task: Task, settings: Settings) => {
+export const hasGracePeriodEnded = (task: Task, settings: GuildSettings) => {
   const gracePeriodEnd = task.dueAt.getTime() - settings.gracePeriodEndOffset;
-
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
+};
+
+export const toMinutes = (milliseconds: number) => {
+  return milliseconds / (1000 * 60);
+};
+
+export const toHours = (milliseconds: number) => {
+  return milliseconds / (1000 * 60 * 60);
+};
+
+export const toMilliseconds = (
+  timeVal: number,
+  timeType: 'hours' | 'minutes',
+) => {
+  return timeType === 'hours' ? timeVal * 1000 * 60 * 60 : timeVal * 1000 * 60;
 };
 
 export const createTaskEmbed = (
@@ -46,8 +61,8 @@ export const createTaskEmbed = (
         value: task.description,
       },
       {
-        name: 'Due Date',
-        value: task.dueAt.toLocaleString(),
+        name: 'Deadline',
+        value: dayjs(task.dueAt).format('MM/DD/YY @ h:mm a'),
       },
       {
         name: 'Accountability Partner',
@@ -80,7 +95,7 @@ export const getUserInputReaction = async (
         emojis.includes(reaction.emoji.name) && user.id === reactorUserID,
       {
         max: 1,
-        time: reactionTimeLimitMinutes * 60 * 1000,
+        time: toMilliseconds(reactionTimeLimitMinutes, 'minutes'),
         errors: ['time'],
       },
     );

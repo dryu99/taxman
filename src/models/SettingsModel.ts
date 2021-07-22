@@ -1,14 +1,28 @@
 import mongoose from 'mongoose';
+import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
 
-export interface Settings extends MongoModel {
+export interface GuildSettings extends MongoModel {
   guildID: string;
   gracePeriodEndOffset: number; // millisecs before task due dates where users can't cancel/edit tasks
   reactionTimeoutLength: number; // millisecs
   // max_cancels_per_user
 }
 
-const settingsSchema = new mongoose.Schema<Settings>(
+const DEFAULT_GRACE_PERIOD_END_OFFSET = toMilliseconds(12, 'hours');
+const DEFAULT_REACTION_TIMEOUT_LENGTH = toMilliseconds(5, 'minutes');
+
+// used when settings can't be fetched
+export const DEFAULT_SETTINGS: GuildSettings = {
+  id: 'default_settings_id',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  guildID: 'default_settings_guild_id',
+  gracePeriodEndOffset: DEFAULT_GRACE_PERIOD_END_OFFSET,
+  reactionTimeoutLength: DEFAULT_REACTION_TIMEOUT_LENGTH,
+};
+
+const guildSettingsSchema = new mongoose.Schema<GuildSettings>(
   {
     guildID: {
       type: String,
@@ -18,17 +32,20 @@ const settingsSchema = new mongoose.Schema<Settings>(
     gracePeriodEndOffset: {
       type: Number,
       required: true,
-      default: 12 * 60 * 60 * 1000, // 12 hours
+      default: DEFAULT_GRACE_PERIOD_END_OFFSET,
     },
     reactionTimeoutLength: {
       type: Number,
       required: true,
-      default: 5 * 60 * 1000, // 5 min
+      default: DEFAULT_REACTION_TIMEOUT_LENGTH,
     },
   },
   { timestamps: true },
 );
 
-const SettingsModel = mongoose.model<Settings>('Settings', settingsSchema);
+const GuildSettingsModel = mongoose.model<GuildSettings>(
+  'GuildSettings',
+  guildSettingsSchema,
+);
 
-export default SettingsModel;
+export default GuildSettingsModel;

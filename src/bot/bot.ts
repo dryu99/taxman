@@ -2,6 +2,7 @@ import { Channel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import logger from '../lib/logger';
+import { DEFAULT_SETTINGS } from '../models/SettingsModel';
 import { TaskStatus } from '../models/TaskModel';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
@@ -50,6 +51,7 @@ export default class Bot {
     });
 
     this.client.on('guildDelete', (guild) => {
+      // TODO amplitude
       // TODO delete guild settings
       // TODO should look into what happens if discord bot tries to send message to guild its been removed from
       //      we need to update all tasks / members in some way
@@ -107,10 +109,17 @@ export default class Bot {
 
       if (!channel.isText()) continue; // TODO sentry
 
-      // TODO once we get access to guild id fetch settings so we can pass to check in messenger
-      // const settings = settingsService.getByGuildID(dueTas)
+      let settings = await settingsService.getByGuildID(dueTask.guildID);
+      if (!settings) {
+        settings = DEFAULT_SETTINGS;
+        // TODO sentry
+      }
 
-      const taskCheckInMessenger = new TaskCheckInMessenger(dueTask, channel);
+      const taskCheckInMessenger = new TaskCheckInMessenger(
+        dueTask,
+        channel,
+        settings,
+      );
 
       // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)
       taskCheckInMessenger.prompt(); // async

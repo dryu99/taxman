@@ -1,12 +1,19 @@
 import { MessageEmbed } from 'discord.js';
 import { Task, TaskStatus } from '../../models/TaskModel';
-import { createTaskEmbed, formatMention, getUserInputReaction } from '../utils';
+import {
+  createTaskEmbed,
+  formatMention,
+  getUserInputReaction,
+  toMinutes,
+} from '../utils';
 import theme from '../theme';
 import taskService from '../../services/task-service';
 import { TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
+import stripIndent from 'common-tags/lib/stripIndent';
+import { GuildSettings } from '../../models/SettingsModel';
 
 enum MessageState {
   USER_CONFIRM = 'user_confirm',
@@ -19,11 +26,17 @@ enum MessageState {
 export default class TaskCheckInMessenger extends Messenger {
   private task: Task;
   private state: MessageState;
+  private settings: GuildSettings;
 
-  constructor(task: Task, channel: DiscordTextChannel) {
+  constructor(
+    task: Task,
+    channel: DiscordTextChannel,
+    settings: GuildSettings,
+  ) {
     super(channel);
     this.task = task;
     this.state = MessageState.USER_CONFIRM; // start state
+    this.settings = settings;
   }
 
   public async prompt() {
@@ -46,44 +59,35 @@ export default class TaskCheckInMessenger extends Messenger {
   }
 
   private async handleUserConfirm(): Promise<MessageState> {
-    try {
-      // send reaction embed + collect reacts
-      const reactionTimeLimitMinutes = 5;
-      const reactEmbed = new MessageEmbed()
-        .setTitle('Task Check-In')
-        .setDescription(
-          `
-          ${formatMention(this.task.userDiscordID)} Your task is due!
-          Have you completed it?
-          Remember to provide photographic proof for your accountability partner! 
-          You have ${reactionTimeLimitMinutes} minutes to respond.
-        `,
-        )
-        .addFields(
-          { name: 'Task Description', value: this.task.description },
-          {
-            name: 'Deadline',
-            value: this.task.dueAt.toDateString(), // TODO include time
-          },
-          {
-            name: 'Accountability Partner',
-            value: formatMention(this.task.partnerUserDiscordID),
-          },
-          {
-            name: 'Money at stake',
-            value: `$${this.task.stakes}`,
-          },
-        );
+    // send reaction embed + collect reacts
+    const reactionTimeoutMinutes = toMinutes(
+      this.settings.reactionTimeoutLength,
+    );
+    const taskEmbed = createTaskEmbed(this.task);
+    const reactEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(
+        stripIndent`
+            ${formatMention(this.task.userDiscordID)} your task is due! 🧞‍♂️
 
-      const reactMsg = await this.channel.send(
-        `${formatMention(this.task.userDiscordID)} ‼️ TASK CHECK-IN ‼️`,
-        { embed: reactEmbed },
+            Please confirm whether you've completed it or not.
+
+            Your accountability partner will also be confirming your completion, so make sure to have some photo/video proof ready!
+        `,
+      )
+      .setFooter(`You have ${reactionTimeoutMinutes} minutes to respond.`);
+
+    try {
+      await this.channel.send(
+        `${formatMention(this.task.userDiscordID)} 🔔 TASK CHECK-IN 🔔`,
+        { embed: taskEmbed },
       );
+      const reactMsg = await this.channel.send(reactEmbed); // TODO v13: send multiple embeds in 1 msg
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
         this.task.userDiscordID,
-        reactionTimeLimitMinutes, // TODO pass settings time limit here
+        reactionTimeoutMinutes, // TODO pass settings time limit here
       );
 
       // set next state
@@ -94,43 +98,49 @@ export default class TaskCheckInMessenger extends Messenger {
         return MessageState.END;
       }
 
-      await this.sendErrorMsg(
-        'Received unexpected emoji, cancelling check-in.',
-      );
+      // TODO sentry
+      await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
       return MessageState.END;
     } catch (e) {
       logger.error(e);
       if (e instanceof TimeoutError) {
         await this.failCheckIn('You failed to to check-in in time.');
       } else {
-        await this.sendErrorMsg(e.message);
+        // TODO sentry
+        await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
       }
-
       return MessageState.END;
     }
   }
 
   private async handlePartnerConfirm(): Promise<MessageState> {
-    const reactionTimeLimitMinutes = 5;
+    const reactionTimeoutMinutes = toMinutes(
+      this.settings.reactionTimeoutLength,
+    );
+    // TODO should somehow have this msg reference previous embed (so they can check what the task was)
     const reactEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
-      .setTitle(`Task Check-In: Partner Confirmation`)
       .setDescription(
-        `${formatMention(
-          this.task.partnerUserDiscordID,
-        )} Please confirm that ${formatMention(
+        `Please confirm that ${formatMention(
           this.task.userDiscordID,
         )} has completed their task. 
-        You have ${reactionTimeLimitMinutes} minutes to respond.`,
-      );
+        `,
+      )
+      .setFooter(`You have ${reactionTimeoutMinutes} minutes to respond.`);
 
     try {
-      const reactMsg = await this.channel.send(reactEmbed);
+      const reactMsg = await this.channel.send(
+        `${formatMention(
+          this.task.partnerUserDiscordID,
+        )} 🔔 TASK CHECK-IN: PARTNER CONFIRMATION 🔔`,
+        { embed: reactEmbed },
+      );
+
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
         this.task.partnerUserDiscordID,
-        reactionTimeLimitMinutes, // TODO pass settings time
+        reactionTimeoutMinutes,
       );
 
       // set next state
@@ -144,17 +154,16 @@ export default class TaskCheckInMessenger extends Messenger {
         return MessageState.END;
       }
 
-      await this.sendErrorMsg(
-        'Received unexpected emoji, cancelling check-in.',
-      );
+      await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
       return MessageState.END;
     } catch (e) {
+      logger.error(e);
       if (e instanceof TimeoutError) {
         await this.failCheckIn(
           "Your partner didn't respond in time and lost the opportunity to audit you.",
         );
       } else {
-        await this.sendErrorMsg(e.message);
+        await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
       }
       return MessageState.END;
     }

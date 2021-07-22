@@ -1,3 +1,4 @@
+// TODO add time stamps to these
 const info = (...params) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(...params);
