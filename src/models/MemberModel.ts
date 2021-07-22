@@ -15,6 +15,7 @@ export type MemberDocument = Member & Document<any, any, Member>;
 
 export const memberSchema = new Schema<Member>(
   {
+    // TODO discordUserID + guildID must be unique together
     discordUserID: { type: String, required: true },
     guildID: { type: String, required: true },
   },

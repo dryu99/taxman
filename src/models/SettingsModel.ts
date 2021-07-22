@@ -13,6 +13,7 @@ const settingsSchema = new mongoose.Schema<Settings>(
     guildID: {
       type: String,
       required: true,
+      unique: true,
     },
     gracePeriodEndOffset: {
       type: Number,

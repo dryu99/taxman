@@ -14,6 +14,7 @@ dayjs.extend(customParseFormat);
 
 // TODO give embeds and msg variables more specific names
 // TODO figure out way to handle messenger try catchs the same way (wrap with a fn? or wrap switch with try catch)
+mongoose.set('useFindAndModify', false);
 mongoose
   .connect(process.env.MONGODB_LOCAL_URI as string, {
     // TODO remove typescript force

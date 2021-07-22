@@ -99,6 +99,7 @@ export default class TaskCheckInMessenger extends Messenger {
       );
       return MessageState.END;
     } catch (e) {
+      logger.error(e);
       if (e instanceof TimeoutError) {
         await this.failCheckIn('You failed to to check-in in time.');
       } else {

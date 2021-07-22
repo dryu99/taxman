@@ -15,7 +15,7 @@ export type UserDocument = User & Document<any, any, User>;
 
 export const userSchema = new Schema<User>(
   {
-    discordID: { type: String, required: true },
+    discordID: { type: String, required: true, unique: true },
   },
   { timestamps: true },
 );

@@ -18,8 +18,10 @@ enum ScheduleCommandArgs {
   REMINDER = 'reminderMinutes',
 }
 
-const prompt =
-  'Format is: <Description> <MM/DD> <HH:MM> <AM/PM> <Reminder (x minutes before)> <Cost> <@Partner>';
+const prompt = `
+    Format is: <Description> <MM/DD> <HH:MM> <AM/PM> <Reminder (x minutes before)> <Cost> <@Partner>
+    $schedule gym 07/22 11:30 PM 30 30 @whysoryude
+  `;
 
 // TODO when user tries to do ANY command, should have a check to see if they exist in db.
 //      check both user + member collection. add them if they dont exist.

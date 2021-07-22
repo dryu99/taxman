@@ -1,6 +1,8 @@
+import { Channel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import logger from '../lib/logger';
+import { TaskStatus } from '../models/TaskModel';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
 import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
@@ -13,7 +15,7 @@ export default class Bot {
 
   constructor() {
     this.client = new CommandoClient({
-      commandPrefix: '$', // TODO change to ! (figure out how to avoid conflicts with other bots e.g. rhythm bot)
+      commandPrefix: 'T$', // TODO figure out how to avoid conflicts with other bots e.g. rhythm bot
       owner: process.env.OWNER_ID,
       // presence: TODO do this https://discord.js.org/#/docs/main/stable/typedef/PresenceData
     });
@@ -40,7 +42,7 @@ export default class Bot {
 
     this.client.on('guildCreate', async (guild) => {
       guild?.systemChannel?.send(
-        `Hello, I'm the Taxman. Yeaaah I'm the Taxman. Thanks for inviting me!`, // TODO more detailed intro (print commands)
+        `Hello, I'm the TaxBot. Yeaaah I'm the TaxBot. Thanks for inviting me!`, // TODO more detailed intro (print commands)
       );
 
       // init settings
@@ -48,7 +50,13 @@ export default class Bot {
     });
 
     this.client.on('guildDelete', (guild) => {
-      // TODO delete guild settings here
+      // TODO delete guild settings
+      // TODO should look into what happens if discord bot tries to send message to guild its been removed from
+      //      we need to update all tasks / members in some way
+      //      tasks: flag status as cancelled? need to do sth to prevent them from being fetched
+      //             actually, maybe we dont need to since fetched tasks are flagged as checked. we could keep fetching in case they come back
+      //             actually we should do some kind of flagging lmao, this would be bad for recuring tasks. need to stop them from recurring somehow
+      //      members: can prob just leave? or maybe reset cancel tokens or sth
     });
   }
 
@@ -72,14 +80,31 @@ export default class Bot {
     );
 
     // Check for due tasks
-    // TODO handle await with try catch
     // TODO determine if this doesn't work with different timezones
     // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
     const dueTasks = await taskService.getDueTasks(new Date());
     logger.info('  Due tasks:', dueTasks);
 
     for (const dueTask of dueTasks) {
-      const channel = await this.client.channels.fetch(dueTask.channelID);
+      let channel: Channel | undefined;
+      try {
+        channel = await this.client.channels.fetch(dueTask.channelID);
+      } catch (e) {
+        // possible errors:
+        //  - channel doesn't exist anymore
+        //  - bot was kicked from guild
+        logger.error(e);
+        await taskService.update(dueTask.id, {
+          status: TaskStatus.FORCE_CANCELLED,
+        });
+
+        // TODO should consider msging user too
+        //      if channel doesn't exist anymore -> force_cancel channel tasks + DM users with tasks scheduled for that channel and let them know that all their scheduled tasks for that channel were cancelled
+        //      if guild doesn't exist anymore -> force_cancel guild tasks + DM users with tasks scheduled in that guild same thing as above ^ (actually we can do this in the guildDelete event handler)
+        // TODO sentry
+        continue;
+      }
+
       if (!channel.isText()) continue; // TODO sentry
 
       // TODO once we get access to guild id fetch settings so we can pass to check in messenger
