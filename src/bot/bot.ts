@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from '../models/SettingsModel';
 import { TaskStatus } from '../models/TaskModel';
 import settingsService from '../services/settings-service';
 import taskService from '../services/task-service';
+import { MISSING_SETTINGS_ERROR } from './errors';
 import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
 import { formatMention } from './utils';
 
@@ -111,7 +112,8 @@ export default class Bot {
 
       let settings = await settingsService.getByGuildID(dueTask.guildID);
       if (!settings) {
-        settings = DEFAULT_SETTINGS;
+        await channel.send(MISSING_SETTINGS_ERROR);
+        continue;
         // TODO sentry
       }
 

@@ -11,8 +11,12 @@ const getAll = async (): Promise<Task[]> => {
 };
 
 const getByID = async (taskID: string): Promise<Task | undefined> => {
-  const task = await TaskModel.findById(taskID);
-  return task || undefined;
+  try {
+    const task = await TaskModel.findById(taskID);
+    return task || undefined;
+  } catch (e) {
+    return undefined;
+  }
 };
 
 const getUserTasks = async (

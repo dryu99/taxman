@@ -81,6 +81,8 @@ class ScheduleCommand extends Command {
   }
 
   // TODO make cost, reminder optional
+  // TODO add channel param
+  // TODO don't allow users to schedule tasks before current date
   async run(msg: CommandoMessage, args: Record<ScheduleCommandArgs, string>) {
     const { description, date, time, timeType, cost, reminderMinutes } = args;
 

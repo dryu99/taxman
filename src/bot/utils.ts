@@ -14,20 +14,28 @@ import { TimeoutError } from './errors';
 import theme from './theme';
 import { DiscordTextChannel } from './types';
 
-export const formatMention = (id: string) => {
+export const formatDate = (date: Date): string => {
+  // TODO add conditions to format with words like "tomorrow" and "today"
+  return dayjs(date).format('M/D/YY @ h:mm a');
+};
+
+export const formatMention = (id: string): string => {
   return `<@${id}>`;
 };
 
-export const hasGracePeriodEnded = (task: Task, settings: GuildSettings) => {
+export const hasGracePeriodEnded = (
+  task: Task,
+  settings: GuildSettings,
+): boolean => {
   const gracePeriodEnd = task.dueAt.getTime() - settings.gracePeriodEndOffset;
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
 
-export const toMinutes = (milliseconds: number) => {
+export const toMinutes = (milliseconds: number): number => {
   return milliseconds / (1000 * 60);
 };
 
-export const toHours = (milliseconds: number) => {
+export const toHours = (milliseconds: number): number => {
   return milliseconds / (1000 * 60 * 60);
 };
 
@@ -62,7 +70,7 @@ export const createTaskEmbed = (
       },
       {
         name: 'Deadline',
-        value: dayjs(task.dueAt).format('MM/DD/YY @ h:mm a'),
+        value: formatDate(task.dueAt),
       },
       {
         name: 'Accountability Partner',

@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS: GuildSettings = {
   reactionTimeoutLength: DEFAULT_REACTION_TIMEOUT_LENGTH,
 };
 
-const guildSettingsSchema = new mongoose.Schema<GuildSettings>(
+const settingsSchema = new mongoose.Schema<GuildSettings>(
   {
     guildID: {
       type: String,
@@ -43,9 +43,6 @@ const guildSettingsSchema = new mongoose.Schema<GuildSettings>(
   { timestamps: true },
 );
 
-const SettingsModel = mongoose.model<GuildSettings>(
-  'GuildSettings',
-  guildSettingsSchema,
-);
+const SettingsModel = mongoose.model<GuildSettings>('Settings', settingsSchema);
 
 export default SettingsModel;

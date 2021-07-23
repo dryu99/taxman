@@ -3,9 +3,6 @@ import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 
 export default abstract class Messenger {
-  static SUPPORT_ERROR_MSG: string =
-    'Something went wrong... Please contact support for help.';
-
   protected channel: DiscordTextChannel;
   // protected state: TaskMessengerState;
 

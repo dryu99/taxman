@@ -3,7 +3,7 @@ import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { Task, TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
-import { formatMention } from '../../bot/utils';
+import { formatDate, formatMention } from '../../bot/utils';
 import ScheduleCommand from './schedule';
 
 enum ListCommandArgs {
@@ -38,6 +38,7 @@ class ListCommand extends Command {
   }
 
   // TODO handle input validation
+  // TODO embed should only display 3-5 tasks, if they want to see more they should use reacts to nav to next embed
   async run(msg: CommandoMessage, args: Record<ListCommandArgs, string>) {
     const { option } = args;
 
@@ -60,13 +61,12 @@ class ListCommand extends Command {
       .setColor(theme.colors.primary.main)
       .setTitle(title); // TODO should change based on flag (e.g. All vs Completed vs Upcoming)
 
-    // TODO find better date format (and apply elsewhere make utils fn or sth)
     // TODO only show DUE @ text for upcoming tasks (ow just use 'Due Date:' text)
     if (tasks.length > 0) {
       const fields = tasks.map((task, i) => ({
         name: `\`${i + 1}.\`  ${task.description}`,
         value: `
-          **DUE @ ${task.dueAt.toLocaleString()}**
+          **DUE @ ${formatDate(task.dueAt)}**
           ID: \`${task.id}\`
           Money at stake: $${task.stakes}
           Accountability Partner: ${formatMention(task.userDiscordID)}

@@ -8,7 +8,7 @@ import {
 } from '../utils';
 import theme from '../theme';
 import taskService from '../../services/task-service';
-import { TimeoutError } from '../errors';
+import { INTERNAL_ERROR, TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
@@ -99,7 +99,7 @@ export default class TaskCheckInMessenger extends Messenger {
       }
 
       // TODO sentry
-      await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
+      await this.sendErrorMsg(INTERNAL_ERROR);
       return MessageState.END;
     } catch (e) {
       logger.error(e);
@@ -107,7 +107,7 @@ export default class TaskCheckInMessenger extends Messenger {
         await this.failCheckIn('You failed to to check-in in time.');
       } else {
         // TODO sentry
-        await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
+        await this.sendErrorMsg(INTERNAL_ERROR);
       }
       return MessageState.END;
     }
@@ -154,7 +154,7 @@ export default class TaskCheckInMessenger extends Messenger {
         return MessageState.END;
       }
 
-      await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
+      await this.sendErrorMsg(INTERNAL_ERROR);
       return MessageState.END;
     } catch (e) {
       logger.error(e);
@@ -163,7 +163,7 @@ export default class TaskCheckInMessenger extends Messenger {
           "Your partner didn't respond in time and lost the opportunity to audit you.",
         );
       } else {
-        await this.sendErrorMsg(Messenger.SUPPORT_ERROR_MSG);
+        await this.sendErrorMsg(INTERNAL_ERROR);
       }
       return MessageState.END;
     }
