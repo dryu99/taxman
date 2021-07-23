@@ -15,14 +15,21 @@ const getByID = async (taskID: string): Promise<Task | undefined> => {
   return task || undefined;
 };
 
-const getAuthorTasks = async (
-  authorID: string,
-  filter: Partial<Task>,
+const getUserTasks = async (
+  userDiscordID: string,
+  status?: TaskStatus,
 ): Promise<Task[]> => {
+  const filter: Partial<Task> = {};
+
+  // if no status given, don't filter
+  if (status) {
+    filter.status = status;
+  }
+
   const tasks = await TaskModel.find({
-    userDiscordID: authorID,
+    userDiscordID,
     ...filter,
-  });
+  }).sort({ dueAt: -1, createdAt: -1 });
   return tasks;
 };
 
@@ -119,7 +126,7 @@ const taskService = {
   getDueTasks,
   getReminderTasks,
   add,
-  getAuthorTasks,
+  getUserTasks,
   update,
   updateMany,
 };

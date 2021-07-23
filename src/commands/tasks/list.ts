@@ -41,15 +41,11 @@ class ListCommand extends Command {
   async run(msg: CommandoMessage, args: Record<ListCommandArgs, string>) {
     const { option } = args;
 
-    // Fetch author tasks
-    const taskFilter: Partial<Task> = {};
-    if (option !== 'all') {
-      taskFilter.status =
-        option === 'past' ? TaskStatus.COMPLETED : TaskStatus.PENDING;
-      // TODO this isn't correct, as FAILED + CANCELLED tasks are also in the past.
-      //      have to do more complex filter
-    }
-    const tasks = await taskService.getAuthorTasks(msg.author.id, taskFilter);
+    // Fetch user tasks
+    const tasks = await taskService.getUserTasks(
+      msg.author.id,
+      option === 'upcoming' ? TaskStatus.PENDING : undefined,
+    );
 
     // Create embed
     // TODO improve typing lmao
