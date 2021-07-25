@@ -13,7 +13,7 @@ import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
 import stripIndent from 'common-tags/lib/stripIndent';
-import { GuildSettings } from '../../models/SettingsModel';
+import { Guild } from '../../models/GuildModel';
 
 enum MessageState {
   USER_CONFIRM = 'user_confirm',
@@ -26,17 +26,13 @@ enum MessageState {
 export default class TaskCheckInMessenger extends Messenger {
   private task: Task;
   private state: MessageState;
-  private settings: GuildSettings;
+  private guild: Guild;
 
-  constructor(
-    task: Task,
-    channel: DiscordTextChannel,
-    settings: GuildSettings,
-  ) {
+  constructor(task: Task, channel: DiscordTextChannel, guild: Guild) {
     super(channel);
     this.task = task;
     this.state = MessageState.USER_CONFIRM; // start state
-    this.settings = settings;
+    this.guild = guild;
   }
 
   public async prompt() {
@@ -61,7 +57,7 @@ export default class TaskCheckInMessenger extends Messenger {
   private async handleUserConfirm(): Promise<MessageState> {
     // send reaction embed + collect reacts
     const reactionTimeoutMinutes = toMinutes(
-      this.settings.reactionTimeoutLength,
+      this.guild.settings.reactionTimeoutLength,
     );
     const taskEmbed = createTaskEmbed(this.task);
     const reactEmbed = new MessageEmbed()
@@ -115,7 +111,7 @@ export default class TaskCheckInMessenger extends Messenger {
 
   private async handlePartnerConfirm(): Promise<MessageState> {
     const reactionTimeoutMinutes = toMinutes(
-      this.settings.reactionTimeoutLength,
+      this.guild.settings.reactionTimeoutLength,
     );
     // TODO should somehow have this msg reference previous embed (so they can check what the task was)
     const reactEmbed = new MessageEmbed()

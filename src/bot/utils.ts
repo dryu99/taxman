@@ -7,7 +7,7 @@ import {
   User,
 } from 'discord.js';
 import logger from '../lib/logger';
-import { GuildSettings } from '../models/SettingsModel';
+import { Guild } from '../models/GuildModel';
 import { NewTask, Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import { TimeoutError } from './errors';
@@ -25,9 +25,9 @@ export const formatMention = (id: string): string => {
 
 export const hasGracePeriodEnded = (
   task: Task,
-  settings: GuildSettings,
+  gracePeriodEndOffset: number,
 ): boolean => {
-  const gracePeriodEnd = task.dueAt.getTime() - settings.gracePeriodEndOffset;
+  const gracePeriodEnd = task.dueAt.getTime() - gracePeriodEndOffset;
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
 

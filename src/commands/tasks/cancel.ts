@@ -1,7 +1,7 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import Bot from '../../bot/Bot';
 import { TaskStatus } from '../../models/TaskModel';
-import settingsService from '../../services/settings-service';
+import guildService from '../../services/guild-service';
 import taskService from '../../services/task-service';
 import ListCommand from './list';
 import {
@@ -43,10 +43,10 @@ class CancelCommand extends Command {
     try {
       // TODO can fetch both at same time
       const task = await taskService.getByID(taskID);
-      const settings = await settingsService.getByGuildID(msg.guild.id);
+      const guild = await guildService.getByDiscordID(msg.guild.id);
 
       if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
-      if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
+      if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
 
       if (task.userDiscordID !== msg.author.id)
         return msg.reply(`You can't cancel other people's tasks!`);
@@ -57,7 +57,7 @@ class CancelCommand extends Command {
         );
 
       // Check grace period
-      if (hasGracePeriodEnded(task, settings))
+      if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
       // Update task status

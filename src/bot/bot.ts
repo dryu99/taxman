@@ -2,9 +2,8 @@ import { Channel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import logger from '../lib/logger';
-import { DEFAULT_SETTINGS } from '../models/SettingsModel';
 import { TaskStatus } from '../models/TaskModel';
-import settingsService from '../services/settings-service';
+import guildService from '../services/guild-service';
 import taskService from '../services/task-service';
 import { MISSING_SETTINGS_ERROR } from './errors';
 import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
@@ -47,8 +46,8 @@ export default class Bot {
         `Hello, I'm the TaxBot. Yeaaah I'm the TaxBot. Thanks for inviting me!`, // TODO more detailed intro (print commands)
       );
 
-      // init settings
-      await settingsService.init(guild.id);
+      // init guild settings
+      await guildService.init(guild.id);
     });
 
     this.client.on('guildDelete', (guild) => {
@@ -110,8 +109,8 @@ export default class Bot {
 
       if (!channel.isText()) continue; // TODO sentry
 
-      let settings = await settingsService.getByGuildID(dueTask.guildID);
-      if (!settings) {
+      let guild = await guildService.getByDiscordID(dueTask.guildID);
+      if (!guild) {
         await channel.send(MISSING_SETTINGS_ERROR);
         continue;
         // TODO sentry
@@ -120,7 +119,7 @@ export default class Bot {
       const taskCheckInMessenger = new TaskCheckInMessenger(
         dueTask,
         channel,
-        settings,
+        guild,
       );
 
       // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)

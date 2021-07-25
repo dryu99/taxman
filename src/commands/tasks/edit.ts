@@ -2,7 +2,7 @@ import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
 import { hasGracePeriodEnded } from '../../bot/utils';
-import settingsService from '../../services/settings-service';
+import guildService from '../../services/guild-service';
 import {
   INTERNAL_ERROR,
   INVALID_TASK_ID_ERROR,
@@ -44,10 +44,10 @@ class EditCommand extends Command {
 
     try {
       const task = await taskService.getByID(taskID);
-      const settings = await settingsService.getByGuildID(msg.guild.id);
+      const guild = await guildService.getByDiscordID(msg.guild.id);
 
       if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
-      if (!settings) return msg.reply(MISSING_SETTINGS_ERROR);
+      if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
 
       if (task.userDiscordID !== msg.author.id)
         return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
@@ -57,7 +57,7 @@ class EditCommand extends Command {
           `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
         );
 
-      if (hasGracePeriodEnded(task, settings))
+      if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
       const channel = await this.client.channels.fetch(task.channelID);
