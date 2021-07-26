@@ -61,7 +61,7 @@ class EditCommand extends Command {
         return msg.reply("Bitch it's too late."); // TODO change text lol
 
       const channel = await this.client.channels.fetch(task.channelID);
-      if (!channel.isText()) return msg.reply('oops');
+      if (!channel.isText()) return null;
 
       // TODO do this lol
       // const taskEditMessenger = new TaskEditMessenger(task, channel, msg);
