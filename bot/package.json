@@ -20,6 +20,7 @@
     "mongoose": "^5.13.2"
   },
   "devDependencies": {
+    "@types/common-tags": "^1.8.1",
     "@types/dotenv": "^8.2.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "15.0.0",

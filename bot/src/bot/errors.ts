@@ -6,7 +6,7 @@ export const INTERNAL_ERROR =
   'Something went wrong... Please contact support for help.';
 
 export class TimeoutError extends Error {
-  constructor(msg) {
+  constructor(msg: string) {
     super(msg);
     this.name = 'TimeoutError';
   }

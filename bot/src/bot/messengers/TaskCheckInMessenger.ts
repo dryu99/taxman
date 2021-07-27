@@ -12,7 +12,7 @@ import { INTERNAL_ERROR, TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
-import stripIndent from 'common-tags/lib/stripIndent';
+import { stripIndent } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
 
 enum MessageState {

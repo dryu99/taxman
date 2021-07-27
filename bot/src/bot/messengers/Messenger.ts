@@ -10,7 +10,7 @@ export default abstract class Messenger {
     this.channel = channel;
   }
 
-  public abstract prompt();
+  public abstract prompt(): void;
 
   protected async sendCollectTimeoutMsg(
     title?: string,
@@ -22,7 +22,7 @@ export default abstract class Messenger {
     return await this.channel.send(timeoutEmbed);
   }
 
-  protected async sendErrorMsg(description): Promise<void> {
+  protected async sendErrorMsg(description: string): Promise<void> {
     const errorEmbed = new MessageEmbed().setColor(theme.colors.error);
     // if (title) errorEmbed.setTitle(title);
     if (description) errorEmbed.setTitle(description);
