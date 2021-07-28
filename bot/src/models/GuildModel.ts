@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
 
+// TODO rename to settings
 export interface Guild extends MongoModel {
   discordID: string;
   settings: {

@@ -1,5 +1,5 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
-import { MISSING_SETTINGS_ERROR } from '../../bot/errors';
+import { INTERNAL_ERROR, MISSING_SETTINGS_ERROR } from '../../bot/errors';
 import TaskWriteMessenger from '../../bot/messengers/TaskAddMessenger';
 import logger from '../../lib/logger';
 import guildService from '../../services/guild-service';
@@ -28,19 +28,17 @@ class NewCommand extends Command {
     if (!guild) return msg.reply(MISSING_SETTINGS_ERROR); // TODO should this error prevent task from being created?
     // TODO sentry
 
-    const taskAddMessenger = new TaskWriteMessenger(
+    const taskWriteMessenger = new TaskWriteMessenger(
       channel,
       msg.author.id,
       guild,
-      true,
     );
     try {
-      await taskAddMessenger.start();
-      await channel.send('finished!');
+      await taskWriteMessenger.start();
     } catch (e) {
       // TODO sentry
       logger.error(e);
-      await channel.send('something weird happened.........'); // TODO change msg lol
+      await channel.send(INTERNAL_ERROR);
     }
 
     return null;

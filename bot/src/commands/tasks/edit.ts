@@ -68,17 +68,15 @@ class EditCommand extends Command {
         channel,
         msg.author.id,
         guild,
-        false,
         task,
       );
 
       await taskWriteMessenger.start();
-      await channel.send('finished!');
       return null;
     } catch (e) {
       // TODO sentry
       logger.error(e);
-      await channel.send('something weird happened.........'); // TODO change msg lol
+      await channel.send(INTERNAL_ERROR);
     }
 
     return null;

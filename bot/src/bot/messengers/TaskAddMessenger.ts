@@ -1,4 +1,4 @@
-import { MessageEmbed } from 'discord.js';
+import { Message, MessageEmbed } from 'discord.js';
 import logger from '../../lib/logger';
 import { Task, TaskFrequency } from '../../models/TaskModel';
 import { TIMEOUT_ERROR } from '../errors';
@@ -13,7 +13,7 @@ import {
 } from '../utils';
 import taskService from '../../services/task-service';
 import dayjs from 'dayjs';
-import { stripIndent } from 'common-tags';
+import { stripIndents } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
 
 enum MessengerState {
@@ -38,13 +38,16 @@ enum MessengerWorkflow {
 
 // TODO add reminder param
 // TODO add channel param
+// TODO add examples for everything
 
 const CANCEL_KEY = 'cancel';
+
+// User input state machine responsible for task creation / edit workflows
 export default class TaskWriteMessenger extends Messenger {
   private state: MessengerState;
   private workflow: MessengerWorkflow;
   private guild: Guild;
-  private isCreatingNew: boolean;
+  private isCreatingNew: boolean; // specifies whether msger is creating or updating task
   private userDiscordID: string;
   private task: Partial<Task>; // contains task metadata we write to db
 
@@ -52,17 +55,17 @@ export default class TaskWriteMessenger extends Messenger {
     channel: DiscordTextChannel,
     userDiscordID: string,
     guild: Guild,
-    isCreatingNew: boolean,
-    task?: Task,
+    task?: Task, // if it exists, user is editing, ow user is creating new
   ) {
     super(channel);
     this.userDiscordID = userDiscordID;
     this.guild = guild;
-    this.isCreatingNew = isCreatingNew;
     this.workflow = MessengerWorkflow.CREATE;
-    this.state = isCreatingNew
-      ? MessengerState.GET_DESCRIPTION
-      : MessengerState.GET_EDIT_OPTION; // initial state
+    this.isCreatingNew = task === undefined;
+    this.state =
+      task === undefined
+        ? MessengerState.GET_DESCRIPTION
+        : MessengerState.GET_EDIT_OPTION; // initial state
     this.task = task ? task : {};
   }
 
@@ -82,16 +85,15 @@ export default class TaskWriteMessenger extends Messenger {
           this.state = await this.handleCollectStakes();
           break;
         case MessengerState.GET_EDIT_OPTION:
-          // once we reach this state, workflow becomes edit
           this.workflow = MessengerWorkflow.EDIT;
           this.state = await this.handleCollectEditOption();
           break;
         case MessengerState.TIMEOUT:
           await this.sendErrorMsg(TIMEOUT_ERROR);
-          return;
+          this.state = MessengerState.END;
         case MessengerState.CANCEL:
           await this.cancelTaskWrite();
-          return;
+          this.state = MessengerState.END;
         case MessengerState.END:
           return;
         default:
@@ -103,11 +105,11 @@ export default class TaskWriteMessenger extends Messenger {
 
   private async handleCollectDescription(): Promise<MessengerState> {
     // Send embed prompt
-    const descriptionEmbed = this.makePromptEmbed(
-      'Please provide a brief description of your task.',
-    );
-    // TODO include cancel key footer
-    await this.channel.send(descriptionEmbed);
+    await this.sendPromptEmbed(`
+      What do you want to do?
+
+      Example: \`Go to the gym\`        
+    `);
 
     // Collect user input
     const userInputMsg = await getUserInputMessage(
@@ -119,7 +121,7 @@ export default class TaskWriteMessenger extends Messenger {
 
     // Validate user input
     if (userInputMsg.content.trim().length <= 0) {
-      await this.channel.send('Please provide a description!');
+      await this.sendErrorMsg('Please provide a valid description!');
       return MessengerState.GET_DESCRIPTION;
     }
 
@@ -134,13 +136,14 @@ export default class TaskWriteMessenger extends Messenger {
     // Send embed prompt
     const currDate = dayjs(Date.now()).add(1, 'day');
     const dateExample = currDate.format('MM/DD/YYYY h:mm a');
-    const deadlineEmbed = this.makePromptEmbed(stripIndent`
-        Please provide the deadline for your task.
-        Format your response like this: \`<MM/DD/YYYY> <H:MM> AM or PM\`
 
-        Example: \`${dateExample}\`
-        `);
-    await this.channel.send(deadlineEmbed);
+    // TODO can reword this. (When will you commit by?)
+    await this.sendPromptEmbed(`
+      When do you want to complete this by?
+      Format your response like this: \`MM/DD/YYYY H:MM AM or PM\`
+
+      Example: \`${dateExample}\`
+    `);
 
     // Collect user input
     const userInputMsg = await getUserInputMessage(
@@ -172,10 +175,11 @@ export default class TaskWriteMessenger extends Messenger {
   }
 
   private async handleCollectPartner(): Promise<MessengerState> {
-    const partnerEmbed = this.makePromptEmbed(
-      'Who do you want to be your accountability partner?',
-    );
-    await this.channel.send(partnerEmbed);
+    await this.sendPromptEmbed(`
+      Who do you want to be your accountability partner?
+
+      Example: \`@partner_name\`
+    `);
 
     // Collect user input
     const userInputMsg = await getUserInputMessage(
@@ -206,10 +210,11 @@ export default class TaskWriteMessenger extends Messenger {
   }
 
   private async handleCollectStakes(): Promise<MessengerState> {
-    const stakesEmbed = this.makePromptEmbed(
-      `How much are you going to stake?`,
-    );
-    await this.channel.send(stakesEmbed);
+    await this.sendPromptEmbed(`
+      How much $ are you going to stake?
+      
+      Example: \`10\`    
+    `);
 
     // collet user input
     const userInputMsg = await getUserInputMessage(
@@ -249,7 +254,7 @@ export default class TaskWriteMessenger extends Messenger {
       .setColor(theme.colors.primary.main)
       .setTitle('Task Confirmation')
       .setDescription(
-        stripIndent`
+        stripIndents`
       Your task is shown above! To edit your task, use one of the emojis on this message.
       Be sure to confirm your new task below.
       (Note: you cannot edit stakes or partner after initial task creation)
@@ -352,15 +357,27 @@ export default class TaskWriteMessenger extends Messenger {
     );
   }
 
-  private makePromptEmbed(description: string): MessageEmbed {
+  // private makePromptEmbed(description: string): MessageEmbed {
+  //   const embed = new MessageEmbed()
+  //     .setColor(theme.colors.primary.main)
+  //     .setDescription(stripIndent(description));
+
+  //   if (this.isCreatingNew && this.workflow === MessengerWorkflow.CREATE) {
+  //     embed.setFooter('Type "cancel" to stop');
+  //   }
+  //   return embed;
+  // }
+
+  private async sendPromptEmbed(description: string): Promise<Message> {
     const embed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
-      .setDescription(description);
+      .setDescription(stripIndents(description));
 
     if (this.isCreatingNew && this.workflow === MessengerWorkflow.CREATE) {
-      embed.setFooter('Type `cancel` to stop');
+      embed.setFooter('Type "cancel" to stop');
     }
-    return embed;
+
+    return await this.channel.send(embed);
   }
 }
 
