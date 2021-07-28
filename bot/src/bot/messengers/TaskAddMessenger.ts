@@ -1,7 +1,7 @@
 import { Message, MessageEmbed, User } from 'discord.js';
 import logger from '../../lib/logger';
 import { Task } from '../../models/TaskModel';
-import { INTERNAL_ERROR, TimeoutError, TIMEOUT_ERROR } from '../errors';
+import { TimeoutError } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
@@ -27,7 +27,7 @@ enum MessageWorkflow {
 }
 
 export default class TaskAddMessenger extends Messenger {
-  static CANCEL_KEY: string = 'cancel';
+  static TIMEOUT_MSG: string = 'This command timed out, cancelling command';
 
   private commandMsg: Message;
   private state: MessageState;
@@ -81,35 +81,15 @@ export default class TaskAddMessenger extends Messenger {
   }
 
   private async handleCollectDescription(): Promise<MessageState> {
-    const descriptionEmbed = new MessageEmbed()
-      .setColor(theme.colors.primary.main)
-      .setDescription(`Please provide fea brief description of your task.`);
-
-    await this.channel.send(descriptionEmbed);
-
     try {
-      const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-      if (userInputMsg.content === TaskAddMessenger.CANCEL_KEY) {
-        this.cancelTaskAdd();
-        return MessageState.END;
-      }
-
-      if (userInputMsg.content.trim().length <= 0) {
-        await this.channel.send('Please provide a description!');
-        return MessageState.GET_DESCRIPTION;
-      }
-
-      this.description = userInputMsg.content;
+      const newDescription = await this.prompter.promptDescription();
+      this.description = newDescription;
       return this.workflow === MessageWorkflow.CREATE
-        ? MessageState.END
+        ? MessageState.GET_DEADLINE
         : MessageState.CHOOSE_EDIT;
     } catch (e) {
       const errorText =
-        e instanceof TimeoutError
-          ? TIMEOUT_ERROR
-          : e.message !== undefined
-          ? e.message
-          : INTERNAL_ERROR;
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -123,7 +103,8 @@ export default class TaskAddMessenger extends Messenger {
         ? MessageState.GET_PARTNER
         : MessageState.CHOOSE_EDIT;
     } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -137,7 +118,8 @@ export default class TaskAddMessenger extends Messenger {
         ? MessageState.GET_STAKES
         : MessageState.CHOOSE_EDIT;
     } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -149,7 +131,8 @@ export default class TaskAddMessenger extends Messenger {
       this.stakes = newStakes;
       return MessageState.CHOOSE_EDIT;
     } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -158,15 +141,15 @@ export default class TaskAddMessenger extends Messenger {
   private async handleChooseEdit(): Promise<MessageState> {
     try {
       // TODO validate props here?
-      // const taskEmbed = createTaskEmbed({
-      //   description: this.description,
-      //   dueAt: this.dueDate,
-      //   stakes: this.stakes,
-      //   userDiscordID: this.userID,
-      //   partnerUserDiscordID: this.partner.id,
-      //   channelID: this.channel.id,
-      // });
-      // await this.channel.send(taskEmbed);
+      const taskEmbed = createTaskEmbed({
+        name: this.description,
+        dueDate: this.dueDate,
+        cost: this.stakes,
+        authorID: this.userID,
+        partnerID: this.partner.id,
+        channelID: this.channel.id,
+      });
+      await this.channel.send(taskEmbed);
 
       const action = await this.prompter.promptEditAction(
         TaskLegendType.CREATE_NEW,
@@ -186,12 +169,13 @@ export default class TaskAddMessenger extends Messenger {
         return MessageState.END;
       }
 
-      await this.sendErrorMsg(
-        'Received unexpected emoji, cancelling task creation.',
-      );
+      await this.sendErrorMsg({
+        description: 'Received unexpected emoji, cancelling task creation.',
+      });
       return MessageState.END;
     } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
+      const errorText =
+        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -204,14 +188,14 @@ export default class TaskAddMessenger extends Messenger {
     await this.channel.send(confirmEmbed);
 
     // save task in db
-    // await taskService.add({
-    //   authorID: this.userID,
-    //   partnerID: this.partner.id,
-    //   channelID: this.channel.id,
-    //   cost: this.stakes,
-    //   name: this.description,
-    //   dueDate: this.dueDate,
-    // });
+    await taskService.add({
+      authorID: this.userID,
+      partnerID: this.partner.id,
+      channelID: this.channel.id,
+      cost: this.stakes,
+      name: this.description,
+      dueDate: this.dueDate,
+    });
   }
 
   private async cancelTaskAdd(): Promise<void> {
