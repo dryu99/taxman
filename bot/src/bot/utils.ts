@@ -127,10 +127,13 @@ const reactToMsg = async (msg: Message, emojis: string[]) => {
 };
 
 // TODO rename to collect
+/**
+ * @returns undefined output implies timeout
+ */
 export const getUserInputMessage = async (
   channel: DiscordTextChannel,
   filterUserID: string,
-): Promise<Message> => {
+): Promise<Message | undefined> => {
   try {
     const collectedMsgs = await channel.awaitMessages(
       (m) => filterUserID === m.author.id,
@@ -145,6 +148,7 @@ export const getUserInputMessage = async (
     if (!collectedMsg) throw new Error("Message couldn't be collected.");
     return collectedMsg;
   } catch (e) {
-    throw new TimeoutError('User took too long to respond with text input.');
+    // timeout occurred
+    return undefined;
   }
 };

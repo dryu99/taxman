@@ -1,7 +1,7 @@
 import { Message, MessageEmbed, User } from 'discord.js';
 import logger from '../../lib/logger';
 import { Task } from '../../models/TaskModel';
-import { TimeoutError } from '../errors';
+import { INTERNAL_ERROR, TimeoutError, TIMEOUT_ERROR } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
@@ -11,10 +11,11 @@ import TaskPrompter, {
   TaskLegendType,
 } from '../prompters/TaskPrompter';
 import taskService from '../../services/task-service';
+import dayjs from 'dayjs';
 
 enum MessageState {
   GET_DESCRIPTION = 'description',
-  GET_DEADLINE = 'deadline',
+  GET_DUE_DATE = 'deadline',
   GET_STAKES = 'stakes',
   GET_PARTNER = 'partner',
   CHOOSE_EDIT = 'edit_legend',
@@ -27,7 +28,7 @@ enum MessageWorkflow {
 }
 
 export default class TaskAddMessenger extends Messenger {
-  static TIMEOUT_MSG: string = 'This command timed out, cancelling command';
+  static CANCEL_KEY: string = 'cancel';
 
   private commandMsg: Message;
   private state: MessageState;
@@ -38,7 +39,7 @@ export default class TaskAddMessenger extends Messenger {
   private userID: string;
   private description: string;
   private dueDate: Date;
-  private partner: User;
+  private partner?: User;
   private stakes: number;
 
   constructor(channel: DiscordTextChannel, commandMsg: Message) {
@@ -48,6 +49,10 @@ export default class TaskAddMessenger extends Messenger {
     this.state = MessageState.GET_DESCRIPTION;
     this.workflow = MessageWorkflow.CREATE;
     this.prompter = new TaskPrompter(channel, commandMsg.author.id);
+
+    this.description = '';
+    this.dueDate = new Date();
+    this.stakes = 5;
   }
 
   public async prompt(): Promise<void> {
@@ -56,8 +61,8 @@ export default class TaskAddMessenger extends Messenger {
         case MessageState.GET_DESCRIPTION:
           this.state = await this.handleCollectDescription();
           break;
-        case MessageState.GET_DEADLINE:
-          this.state = await this.handleCollectDeadline();
+        case MessageState.GET_DUE_DATE:
+          this.state = await this.handleCollectDueDate();
           break;
         case MessageState.GET_PARTNER:
           this.state = await this.handleCollectPartner();
@@ -81,33 +86,83 @@ export default class TaskAddMessenger extends Messenger {
   }
 
   private async handleCollectDescription(): Promise<MessageState> {
-    try {
-      const newDescription = await this.prompter.promptDescription();
-      this.description = newDescription;
-      return this.workflow === MessageWorkflow.CREATE
-        ? MessageState.GET_DEADLINE
-        : MessageState.CHOOSE_EDIT;
-    } catch (e) {
-      const errorText =
-        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
-      await this.sendErrorMsg(errorText);
+    const descriptionEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(`Please provide a brief description of your task.`);
+    // TODO include cancel key footer
+    await this.channel.send(descriptionEmbed);
+
+    // collect user input
+    const userInputMsg = await getUserInputMessage(this.channel, this.userID);
+    if (!userInputMsg) {
+      await this.sendErrorMsg(TIMEOUT_ERROR);
       return MessageState.END;
     }
+
+    // validate user input
+    if (userInputMsg.content === TaskAddMessenger.CANCEL_KEY) {
+      this.cancelTaskAdd();
+      return MessageState.END;
+    }
+    if (userInputMsg.content.trim().length <= 0) {
+      await this.channel.send('Please provide a description!');
+      return MessageState.GET_DESCRIPTION;
+    }
+
+    // set description + advance next state
+    this.description = userInputMsg.content;
+    return this.workflow === MessageWorkflow.CREATE
+      ? MessageState.GET_DUE_DATE
+      : MessageState.CHOOSE_EDIT;
   }
 
-  private async handleCollectDeadline(): Promise<MessageState> {
-    try {
-      const newDueDate = await this.prompter.promptDeadline();
-      this.dueDate = newDueDate;
-      return this.workflow === MessageWorkflow.CREATE
-        ? MessageState.GET_PARTNER
-        : MessageState.CHOOSE_EDIT;
-    } catch (e) {
-      const errorText =
-        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
-      await this.sendErrorMsg(errorText);
+  private async handleCollectDueDate(): Promise<MessageState> {
+    const currISODate = new Date().toISOString();
+    const dateExample =
+      currISODate.slice(0, 10) + ' ' + currISODate.slice(11, 16); // TODO shoulnd't use iso date lmao
+    const deadlineEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(
+        `
+        Please provide the deadline for your task.
+        Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
+
+        Example: \`${dateExample}\`
+        `,
+      );
+    await this.channel.send(deadlineEmbed);
+
+    // collect user input
+    const userInputMsg = await getUserInputMessage(this.channel, this.userID);
+    if (!userInputMsg) {
+      await this.sendErrorMsg(TIMEOUT_ERROR);
       return MessageState.END;
     }
+
+    // validate user input
+    if (userInputMsg.content === TaskAddMessenger.CANCEL_KEY) {
+      this.cancelTaskAdd();
+      return MessageState.END;
+    }
+
+    // TODO consider abstracting dayjs
+    const dueDate = dayjs(
+      userInputMsg.content,
+      // TODO add more accepted formats (add option for no year specification)
+      ['MM/DD/YYYY h:mm A', 'MM/DD/YYYY h:mm a'],
+      true,
+    ).tz('America/Los_Angeles'); // TODO should accept user input
+
+    if (!dueDate.isValid()) {
+      await this.sendErrorMsg('Please provide a valid date format!');
+      return MessageState.GET_DUE_DATE;
+    }
+
+    this.dueDate = dueDate.toDate();
+    return this.workflow === MessageWorkflow.CREATE
+      ? // ? MessageState.GET_PARTNER
+        MessageState.END
+      : MessageState.CHOOSE_EDIT;
   }
 
   private async handleCollectPartner(): Promise<MessageState> {
@@ -118,8 +173,7 @@ export default class TaskAddMessenger extends Messenger {
         ? MessageState.GET_STAKES
         : MessageState.CHOOSE_EDIT;
     } catch (e) {
-      const errorText =
-        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -131,8 +185,7 @@ export default class TaskAddMessenger extends Messenger {
       this.stakes = newStakes;
       return MessageState.CHOOSE_EDIT;
     } catch (e) {
-      const errorText =
-        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -141,15 +194,15 @@ export default class TaskAddMessenger extends Messenger {
   private async handleChooseEdit(): Promise<MessageState> {
     try {
       // TODO validate props here?
-      const taskEmbed = createTaskEmbed({
-        name: this.description,
-        dueDate: this.dueDate,
-        cost: this.stakes,
-        authorID: this.userID,
-        partnerID: this.partner.id,
-        channelID: this.channel.id,
-      });
-      await this.channel.send(taskEmbed);
+      // const taskEmbed = createTaskEmbed({
+      //   description: this.description,
+      //   dueAt: this.dueDate,
+      //   stakes: this.stakes,
+      //   userDiscordID: this.userID,
+      //   partnerUserDiscordID: this.partner.id,
+      //   channelID: this.channel.id,
+      // });
+      // await this.channel.send(taskEmbed);
 
       const action = await this.prompter.promptEditAction(
         TaskLegendType.CREATE_NEW,
@@ -157,7 +210,7 @@ export default class TaskAddMessenger extends Messenger {
 
       if (action === EditAction.DESCRIPTION)
         return MessageState.GET_DESCRIPTION;
-      if (action === EditAction.DUE_DATE) return MessageState.GET_DEADLINE;
+      if (action === EditAction.DUE_DATE) return MessageState.GET_DUE_DATE;
       if (action === EditAction.PARTNER) return MessageState.GET_PARTNER;
       if (action === EditAction.STAKES) return MessageState.GET_STAKES;
       if (action === EditAction.CONFIRM) {
@@ -169,13 +222,12 @@ export default class TaskAddMessenger extends Messenger {
         return MessageState.END;
       }
 
-      await this.sendErrorMsg({
-        description: 'Received unexpected emoji, cancelling task creation.',
-      });
+      await this.sendErrorMsg(
+        'Received unexpected emoji, cancelling task creation.',
+      );
       return MessageState.END;
     } catch (e) {
-      const errorText =
-        e instanceof TimeoutError ? TaskAddMessenger.TIMEOUT_MSG : e.message;
+      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
       await this.sendErrorMsg(errorText);
       return MessageState.END;
     }
@@ -188,14 +240,14 @@ export default class TaskAddMessenger extends Messenger {
     await this.channel.send(confirmEmbed);
 
     // save task in db
-    await taskService.add({
-      authorID: this.userID,
-      partnerID: this.partner.id,
-      channelID: this.channel.id,
-      cost: this.stakes,
-      name: this.description,
-      dueDate: this.dueDate,
-    });
+    // await taskService.add({
+    //   authorID: this.userID,
+    //   partnerID: this.partner.id,
+    //   channelID: this.channel.id,
+    //   cost: this.stakes,
+    //   name: this.description,
+    //   dueDate: this.dueDate,
+    // });
   }
 
   private async cancelTaskAdd(): Promise<void> {
