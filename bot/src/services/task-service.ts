@@ -105,6 +105,7 @@ const update = async (
   taskID: string,
   newProps: Partial<Task>,
 ): Promise<Task | undefined> => {
+  // TODO try catch ?
   const updatedTask = await TaskModel.findByIdAndUpdate(taskID, newProps, {
     new: true,
   });

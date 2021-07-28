@@ -12,6 +12,7 @@ import {
 import ListCommand from './list';
 // import TaskEditMessenger from '../../bot/messengers/TaskEditMessenger';
 import logger from '../../lib/logger';
+import TaskWriteMessenger from '../../bot/messengers/TaskAddMessenger';
 
 enum EditCommandArgs {
   TASK_ID = 'taskID',
@@ -42,37 +43,45 @@ class EditCommand extends Command {
   async run(msg: CommandoMessage, args: Record<EditCommandArgs, string>) {
     const { taskID } = args;
 
+    const task = await taskService.getByID(taskID);
+    const guild = await guildService.getByDiscordID(msg.guild.id);
+
+    if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
+    if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
+
+    if (task.userDiscordID !== msg.author.id)
+      return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
+
+    if (task.status !== TaskStatus.PENDING)
+      return msg.reply(
+        `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
+      );
+
+    if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
+      return msg.reply("Bitch it's too late."); // TODO change text lol
+
+    const channel = await this.client.channels.fetch(task.channelID);
+    if (!channel.isText()) return null;
+
     try {
-      const task = await taskService.getByID(taskID);
-      const guild = await guildService.getByDiscordID(msg.guild.id);
+      const taskWriteMessenger = new TaskWriteMessenger(
+        channel,
+        msg.author.id,
+        guild,
+        false,
+        task,
+      );
 
-      if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
-      if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
-
-      if (task.userDiscordID !== msg.author.id)
-        return msg.reply("You can't edit other people's tasks!"); // TODO will timezones affect this...
-
-      if (task.status !== TaskStatus.PENDING)
-        return msg.reply(
-          `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
-        );
-
-      if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
-        return msg.reply("Bitch it's too late."); // TODO change text lol
-
-      const channel = await this.client.channels.fetch(task.channelID);
-      if (!channel.isText()) return null;
-
-      // TODO do this lol
-      // const taskEditMessenger = new TaskEditMessenger(task, channel, msg);
-      // await taskEditMessenger.prompt();
-
+      await taskWriteMessenger.prompt();
+      await channel.send('finished!');
       return null;
     } catch (e) {
-      logger.error(e); // TODO make logger utils
-      if (e instanceof TimeoutError) return msg.reply(e.message); // tODO prob dont need to handle here can handle in messenger
-      return msg.reply(INTERNAL_ERROR);
+      // TODO sentry
+      logger.error(e);
+      await channel.send('something weird happened.........'); // TODO change msg lol
     }
+
+    return null;
   }
 }
 
