@@ -16,7 +16,7 @@ import { DiscordTextChannel } from './types';
 
 export const formatDate = (date: Date): string => {
   // TODO add conditions to format with words like "tomorrow" and "today"
-  return dayjs(date).format('M/D/YY @ h:mm a');
+  return dayjs(date).format('M/D/YY - h:mm a');
 };
 
 export const formatMention = (id: string): string => {

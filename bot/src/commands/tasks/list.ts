@@ -5,13 +5,12 @@ import { Task, TaskStatus } from '../../models/TaskModel';
 import taskService from '../../services/task-service';
 import { formatDate, formatMention } from '../../bot/utils';
 import ScheduleCommand from './schedule';
+import { stripIndent } from 'common-tags';
 
 enum ListCommandArgs {
   OPTION = 'option',
 }
 
-// TODO order of tasks should be newest -> oldest
-// TODO prob just support 'all' flag (no past)
 class ListCommand extends Command {
   static DEFAULT_CMD_NAME = 'list';
 
@@ -25,12 +24,12 @@ class ListCommand extends Command {
       args: [
         {
           key: ListCommandArgs.OPTION,
-          prompt: `
+          prompt: stripIndent`
+            no args -> view upcoming tasks
             \`all\` -> view all tasks
-            \`past\` -> view all past tasks
           `,
           type: 'string',
-          oneOf: ['all', 'past'],
+          oneOf: ['all', 'upcoming'],
           default: 'upcoming', // TODO wtf delete
         },
       ],
@@ -50,24 +49,23 @@ class ListCommand extends Command {
 
     // Create embed
     // TODO improve typing lmao
-    const title =
-      option === 'all'
-        ? 'Viewing All Tasks'
-        : option === 'past'
-        ? 'Viewing Past Tasks'
-        : 'Viewing Upcoming Tasks';
+    const title = option === 'all' ? 'All Tasks' : 'Upcoming Tasks';
 
     const embed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
-      .setTitle(title); // TODO should change based on flag (e.g. All vs Completed vs Upcoming)
+      .setTitle(title);
 
-    // TODO only show DUE @ text for upcoming tasks (ow just use 'Due Date:' text)
     if (tasks.length > 0) {
       const fields = tasks.map((task, i) => ({
         name: `\`${i + 1}.\`  ${task.description}`,
-        value: `
-          **DUE @ ${formatDate(task.dueAt)}**
-          ID: \`${task.id}\`
+        value: stripIndent`
+          ID: \`${task.id}\`\
+          ${option === 'all' ? `\nStatus: ${task.status}` : ''}
+          ${
+            option === 'all'
+              ? `Due Date: ${formatDate(task.dueAt)}`
+              : `**DUE @ ${formatDate(task.dueAt)}**`
+          }
           Money at stake: $${task.stakes}
           Accountability Partner: ${formatMention(task.userDiscordID)}
         `,

@@ -33,7 +33,10 @@ const getUserTasks = async (
   const tasks = await TaskModel.find({
     userDiscordID,
     ...filter,
-  }).sort({ dueAt: -1, createdAt: -1 });
+  }).sort({
+    dueAt: status === TaskStatus.PENDING ? 1 : -1,
+    createdAt: -1,
+  });
   return tasks;
 };
 
