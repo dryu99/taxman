@@ -7,6 +7,7 @@ import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import {
   createTaskEmbed,
+  formatDate,
   getUserInputMessage,
   getUserInputReaction,
 } from '../utils';
@@ -19,11 +20,11 @@ enum MessengerState {
   END = 'end',
 
   // collection states
-  GET_DESCRIPTION = 'description',
-  GET_DUE_DATE = 'deadline',
-  GET_STAKES = 'stakes',
-  GET_PARTNER = 'partner',
-  CHOOSE_EDIT = 'choose_edit',
+  GET_DESCRIPTION = 'get_description',
+  GET_DUE_DATE = 'get_deadline',
+  GET_STAKES = 'get_stakes',
+  GET_PARTNER = 'get_partner',
+  GET_EDIT_OPTION = 'get_edit_option',
 
   // error states
   TIMEOUT = 'timeout',
@@ -31,8 +32,8 @@ enum MessengerState {
 }
 
 enum MessengerWorkflow {
-  CREATE = 'create',
-  EDIT = 'edit',
+  CREATE = 'create', // on new task creation
+  EDIT = 'edit', // when user sees edit option embed
 }
 
 // TODO add reminder param
@@ -61,11 +62,11 @@ export default class TaskWriteMessenger extends Messenger {
     this.workflow = MessengerWorkflow.CREATE;
     this.state = isCreatingNew
       ? MessengerState.GET_DESCRIPTION
-      : MessengerState.CHOOSE_EDIT; // initial state
+      : MessengerState.GET_EDIT_OPTION; // initial state
     this.task = task ? task : {};
   }
 
-  public async prompt(): Promise<void> {
+  public async start(): Promise<void> {
     while (true) {
       switch (this.state) {
         case MessengerState.GET_DESCRIPTION:
@@ -80,16 +81,16 @@ export default class TaskWriteMessenger extends Messenger {
         case MessengerState.GET_STAKES:
           this.state = await this.handleCollectStakes();
           break;
-        case MessengerState.CHOOSE_EDIT:
+        case MessengerState.GET_EDIT_OPTION:
           // once we reach this state, workflow becomes edit
           this.workflow = MessengerWorkflow.EDIT;
-          this.state = await this.handleChooseEdit();
+          this.state = await this.handleCollectEditOption();
           break;
         case MessengerState.TIMEOUT:
           await this.sendErrorMsg(TIMEOUT_ERROR);
           return;
         case MessengerState.CANCEL:
-          await this.cancelTaskAdd();
+          await this.cancelTaskWrite();
           return;
         case MessengerState.END:
           return;
@@ -126,7 +127,7 @@ export default class TaskWriteMessenger extends Messenger {
     this.task.description = userInputMsg.content;
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_DUE_DATE
-      : MessengerState.CHOOSE_EDIT;
+      : MessengerState.GET_EDIT_OPTION;
   }
 
   private async handleCollectDueDate(): Promise<MessengerState> {
@@ -156,7 +157,7 @@ export default class TaskWriteMessenger extends Messenger {
       // TODO add more accepted formats (add option for no year specification)
       ['MM/DD/YYYY h:mm A', 'MM/DD/YYYY h:mm a'],
       true,
-    ).tz('America/Los_Angeles'); // TODO should accept user input
+    ).tz('America/Los_Angeles'); // TODO add timezone param
 
     if (!dueDate.isValid()) {
       await this.sendErrorMsg('Please provide a valid date format!');
@@ -167,10 +168,9 @@ export default class TaskWriteMessenger extends Messenger {
     this.task.dueAt = dueDate.toDate();
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_PARTNER
-      : MessengerState.CHOOSE_EDIT;
+      : MessengerState.GET_EDIT_OPTION;
   }
 
-  // TODO shouldnt let users tag themselves or bots
   private async handleCollectPartner(): Promise<MessengerState> {
     const partnerEmbed = this.makePromptEmbed(
       'Who do you want to be your accountability partner?',
@@ -188,7 +188,13 @@ export default class TaskWriteMessenger extends Messenger {
     // Validate user input
     const taggedUser = userInputMsg.mentions.users.first();
     if (!taggedUser) {
-      await this.sendErrorMsg(`Please mention your partner with \`@\``);
+      await this.sendErrorMsg('Please mention your partner with `@`');
+      return MessengerState.GET_PARTNER;
+    }
+    if (taggedUser.id === this.userDiscordID) {
+      await this.sendErrorMsg(
+        "You can't be your own partner!. Please mention your partner with `@`",
+      );
       return MessengerState.GET_PARTNER;
     }
 
@@ -196,7 +202,7 @@ export default class TaskWriteMessenger extends Messenger {
     this.task.partnerUserDiscordID = taggedUser.id;
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_STAKES
-      : MessengerState.CHOOSE_EDIT;
+      : MessengerState.GET_EDIT_OPTION;
   }
 
   private async handleCollectStakes(): Promise<MessengerState> {
@@ -222,16 +228,13 @@ export default class TaskWriteMessenger extends Messenger {
 
     // set states
     this.task.stakes = stakes;
-    return MessengerState.CHOOSE_EDIT;
+    return MessengerState.GET_EDIT_OPTION;
   }
 
-  private async handleChooseEdit(): Promise<MessengerState> {
+  private async handleCollectEditOption(): Promise<MessengerState> {
     const { description, dueAt, stakes, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !stakes || !partnerUserDiscordID) {
-      throw new Error(
-        'Reached CHOOSE_EDIT state with invalid collected data (this should never happen).',
-      ); // TODO sentry
-    }
+    if (!description || !dueAt || !stakes || !partnerUserDiscordID)
+      throw new Error(invalidDataErrorMsg(this.handleCollectEditOption.name));
 
     // send embeds
     const taskEmbed = createTaskEmbed({
@@ -294,21 +297,17 @@ export default class TaskWriteMessenger extends Messenger {
       return MessengerState.END;
     }
 
-    // TODO will this throw when user randomly reacts lol prob not cause filter
     throw new Error('Received unexpected emoji, cancelling task creation.');
   }
 
   private async completeTaskAdd(): Promise<void> {
     const { description, dueAt, stakes, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !stakes || !partnerUserDiscordID) {
-      throw new Error(
-        'Reached task add completion with invalid collected data (this should never happen).',
-      ); // TODO sentry
-    }
+    if (!description || !dueAt || !stakes || !partnerUserDiscordID)
+      throw new Error(invalidDataErrorMsg(this.completeTaskAdd.name));
 
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
-      .setDescription(`Your task has been created!`); // TODO mention due date
+      .setDescription(`Task created successfully! Due @ ${formatDate(dueAt)}.`);
     await this.channel.send(confirmEmbed);
 
     // save task in db
@@ -330,29 +329,27 @@ export default class TaskWriteMessenger extends Messenger {
 
   private async completeTaskEdit(): Promise<void> {
     const { description, dueAt, id: taskID } = this.task;
-    if (!description || !dueAt || !taskID) {
-      throw new Error(
-        'Reached task edit completion with invalid collected data (this should never happen).',
-      ); // TODO sentry + adjust error msg
-    }
+    if (!description || !dueAt || !taskID)
+      throw new Error(invalidDataErrorMsg(this.completeTaskEdit.name));
 
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
-      .setDescription(`You finished editing! Your edits have been saved.`);
+      .setDescription(`Task updated successfully!`);
     await this.channel.send(confirmEmbed);
 
-    // update task in db
+    // Update task in db
     await taskService.update(taskID, {
-      description, // TODO prob more programmatic way to do this (have to manually add here every time we create new edit option)
+      description,
       dueAt,
     });
   }
 
-  private async cancelTaskAdd(): Promise<void> {
-    const cancelEmbed = new MessageEmbed()
-      .setColor(theme.colors.error)
-      .setDescription('Task creation cancelled, nothing was saved.');
-    await this.channel.send(cancelEmbed);
+  private async cancelTaskWrite(): Promise<void> {
+    await this.sendErrorMsg(
+      `Task ${
+        this.isCreatingNew ? 'creation' : 'update'
+      } cancelled, nothing was saved.`,
+    );
   }
 
   private makePromptEmbed(description: string): MessageEmbed {
@@ -366,3 +363,8 @@ export default class TaskWriteMessenger extends Messenger {
     return embed;
   }
 }
+
+// Static helper functions
+const invalidDataErrorMsg = (functionName: string): string => {
+  return `Reached ${functionName} with invalid collected task data (this should never happen)`;
+};

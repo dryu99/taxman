@@ -123,7 +123,7 @@ export default class Bot {
       );
 
       // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)
-      taskCheckInMessenger.prompt(); // async
+      taskCheckInMessenger.start(); // async
     }
 
     // TODO consider how to handle users editing reminders

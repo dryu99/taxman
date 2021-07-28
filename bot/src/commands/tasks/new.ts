@@ -35,7 +35,7 @@ class NewCommand extends Command {
       true,
     );
     try {
-      await taskAddMessenger.prompt();
+      await taskAddMessenger.start();
       await channel.send('finished!');
     } catch (e) {
       // TODO sentry

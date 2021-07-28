@@ -72,7 +72,7 @@ class EditCommand extends Command {
         task,
       );
 
-      await taskWriteMessenger.prompt();
+      await taskWriteMessenger.start();
       await channel.send('finished!');
       return null;
     } catch (e) {

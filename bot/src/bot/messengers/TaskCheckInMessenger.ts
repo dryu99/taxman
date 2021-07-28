@@ -35,7 +35,7 @@ export default class TaskCheckInMessenger extends Messenger {
     this.guild = guild;
   }
 
-  public async prompt() {
+  public async start() {
     while (true) {
       switch (this.state) {
         case MessageState.USER_CONFIRM:

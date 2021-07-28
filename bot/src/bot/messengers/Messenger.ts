@@ -4,13 +4,12 @@ import { DiscordTextChannel } from '../types';
 
 export default abstract class Messenger {
   protected channel: DiscordTextChannel;
-  // protected state: TaskMessengerState;
 
   constructor(channel: DiscordTextChannel) {
     this.channel = channel;
   }
 
-  public abstract prompt(): void;
+  public abstract start(): void;
 
   protected async sendCollectTimeoutMsg(
     title?: string,
