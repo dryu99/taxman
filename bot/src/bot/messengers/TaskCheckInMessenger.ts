@@ -86,6 +86,11 @@ export default class TaskCheckInMessenger extends Messenger {
         reactionTimeoutMinutes, // TODO pass settings time limit here
       );
 
+      if (!reaction) {
+        // TODO do timeout stuff here like in add msger
+        return MessageState.END;
+      }
+
       // set next state
       const emojiStr = reaction.emoji.name;
       if (emojiStr === '👍') return MessageState.PARTNER_CONFIRM;
@@ -138,6 +143,11 @@ export default class TaskCheckInMessenger extends Messenger {
         this.task.partnerUserDiscordID,
         reactionTimeoutMinutes,
       );
+
+      if (!reaction) {
+        // TODO do timeout stuff here like in add msger
+        return MessageState.END;
+      }
 
       // set next state
       const emojiStr = reaction.emoji.name;

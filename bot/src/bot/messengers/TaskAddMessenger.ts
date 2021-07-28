@@ -1,25 +1,33 @@
 import { Message, MessageEmbed, User } from 'discord.js';
 import logger from '../../lib/logger';
-import { Task } from '../../models/TaskModel';
-import { INTERNAL_ERROR, TimeoutError, TIMEOUT_ERROR } from '../errors';
+import { TaskFrequency } from '../../models/TaskModel';
+import { TIMEOUT_ERROR } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
-import { createTaskEmbed, getUserInputMessage } from '../utils';
-import TaskPrompter, {
-  EditAction,
-  TaskLegendType,
-} from '../prompters/TaskPrompter';
+import {
+  createTaskEmbed,
+  getUserInputMessage,
+  getUserInputReaction,
+} from '../utils';
 import taskService from '../../services/task-service';
 import dayjs from 'dayjs';
+import { stripIndent } from 'common-tags';
+import { Guild } from '../../models/GuildModel';
 
 enum MessageState {
+  END = 'end',
+
+  // collection states
   GET_DESCRIPTION = 'description',
   GET_DUE_DATE = 'deadline',
   GET_STAKES = 'stakes',
   GET_PARTNER = 'partner',
   CHOOSE_EDIT = 'edit_legend',
-  END = 'end',
+
+  // error states
+  TIMEOUT = 'timeout',
+  CANCEL = 'cancel',
 }
 
 enum MessageWorkflow {
@@ -27,32 +35,30 @@ enum MessageWorkflow {
   EDIT = 'edit',
 }
 
-export default class TaskAddMessenger extends Messenger {
-  static CANCEL_KEY: string = 'cancel';
+// TODO add reminder param
+// TODO add channel param
 
+const CANCEL_KEY = 'cancel';
+export default class TaskAddMessenger extends Messenger {
   private commandMsg: Message;
   private state: MessageState;
   private workflow: MessageWorkflow;
-  private prompter: TaskPrompter;
+  private guild: Guild;
 
   // task props we are collecting from user
   private userID: string;
-  private description: string;
-  private dueDate: Date;
+  private description?: string;
+  private dueDate?: Date;
   private partner?: User;
-  private stakes: number;
+  private stakes?: number;
 
-  constructor(channel: DiscordTextChannel, commandMsg: Message) {
+  constructor(channel: DiscordTextChannel, commandMsg: Message, guild: Guild) {
     super(channel);
     this.userID = commandMsg.author.id;
     this.commandMsg = commandMsg;
+    this.guild = guild;
     this.state = MessageState.GET_DESCRIPTION;
     this.workflow = MessageWorkflow.CREATE;
-    this.prompter = new TaskPrompter(channel, commandMsg.author.id);
-
-    this.description = '';
-    this.dueDate = new Date();
-    this.stakes = 5;
   }
 
   public async prompt(): Promise<void> {
@@ -75,8 +81,13 @@ export default class TaskAddMessenger extends Messenger {
           this.workflow = MessageWorkflow.EDIT;
           this.state = await this.handleChooseEdit();
           break;
+        case MessageState.TIMEOUT:
+          await this.sendErrorMsg(TIMEOUT_ERROR);
+          return;
+        case MessageState.CANCEL:
+          await this.cancelTaskAdd();
+          return;
         case MessageState.END:
-          logger.info('exiting message loop');
           return;
         default:
           logger.error('Unknown state received', this.state);
@@ -86,30 +97,25 @@ export default class TaskAddMessenger extends Messenger {
   }
 
   private async handleCollectDescription(): Promise<MessageState> {
+    // Send embed prompt
     const descriptionEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setDescription(`Please provide a brief description of your task.`);
     // TODO include cancel key footer
     await this.channel.send(descriptionEmbed);
 
-    // collect user input
+    // Collect user input
     const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-    if (!userInputMsg) {
-      await this.sendErrorMsg(TIMEOUT_ERROR);
-      return MessageState.END;
-    }
+    if (!userInputMsg) return MessageState.TIMEOUT;
+    if (userInputMsg.content === CANCEL_KEY) return MessageState.CANCEL;
 
-    // validate user input
-    if (userInputMsg.content === TaskAddMessenger.CANCEL_KEY) {
-      this.cancelTaskAdd();
-      return MessageState.END;
-    }
+    // Validate user input
     if (userInputMsg.content.trim().length <= 0) {
       await this.channel.send('Please provide a description!');
       return MessageState.GET_DESCRIPTION;
     }
 
-    // set description + advance next state
+    // Set task state + advance next msg state
     this.description = userInputMsg.content;
     return this.workflow === MessageWorkflow.CREATE
       ? MessageState.GET_DUE_DATE
@@ -117,34 +123,27 @@ export default class TaskAddMessenger extends Messenger {
   }
 
   private async handleCollectDueDate(): Promise<MessageState> {
-    const currISODate = new Date().toISOString();
-    const dateExample =
-      currISODate.slice(0, 10) + ' ' + currISODate.slice(11, 16); // TODO shoulnd't use iso date lmao
+    // Send embed prompt
+    const currDate = dayjs(Date.now()).add(1, 'day');
+    const dateExample = currDate.format('MM/DD/YYYY h:mm a');
     const deadlineEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setDescription(
         `
         Please provide the deadline for your task.
-        Format your response like this: \`<YYYY-MM-DD> <HH:MM>\`
+        Format your response like this: \`<MM/DD/YYYY> <H:MM> AM or PM\`
 
         Example: \`${dateExample}\`
         `,
       );
     await this.channel.send(deadlineEmbed);
 
-    // collect user input
+    // Collect user input
     const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-    if (!userInputMsg) {
-      await this.sendErrorMsg(TIMEOUT_ERROR);
-      return MessageState.END;
-    }
+    if (!userInputMsg) return MessageState.TIMEOUT;
+    if (userInputMsg.content === CANCEL_KEY) return MessageState.CANCEL;
 
-    // validate user input
-    if (userInputMsg.content === TaskAddMessenger.CANCEL_KEY) {
-      this.cancelTaskAdd();
-      return MessageState.END;
-    }
-
+    // Validate user input
     // TODO consider abstracting dayjs
     const dueDate = dayjs(
       userInputMsg.content,
@@ -158,96 +157,156 @@ export default class TaskAddMessenger extends Messenger {
       return MessageState.GET_DUE_DATE;
     }
 
+    // Set task state + advance next msg state
     this.dueDate = dueDate.toDate();
     return this.workflow === MessageWorkflow.CREATE
-      ? // ? MessageState.GET_PARTNER
-        MessageState.END
+      ? MessageState.GET_PARTNER
       : MessageState.CHOOSE_EDIT;
   }
 
+  // TODO shouldnt let users tag themselves or bots
   private async handleCollectPartner(): Promise<MessageState> {
-    try {
-      const newPartner = await this.prompter.promptPartner();
-      this.partner = newPartner;
-      return this.workflow === MessageWorkflow.CREATE
-        ? MessageState.GET_STAKES
-        : MessageState.CHOOSE_EDIT;
-    } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
-      await this.sendErrorMsg(errorText);
-      return MessageState.END;
+    // Send embed
+    const partnerEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(`Who do you want to be your accountability partner?`);
+
+    await this.channel.send(partnerEmbed);
+
+    // Collect user input
+    const userInputMsg = await getUserInputMessage(this.channel, this.userID);
+    if (!userInputMsg) return MessageState.TIMEOUT;
+    if (userInputMsg.content === CANCEL_KEY) return MessageState.CANCEL;
+
+    // Validate user input
+    const taggedUser = userInputMsg.mentions.users.first();
+    if (!taggedUser) {
+      await this.sendErrorMsg(`Please mention your partner with \`@\``);
+      return MessageState.GET_PARTNER;
     }
+
+    // Set states
+    this.partner = taggedUser;
+    return this.workflow === MessageWorkflow.CREATE
+      ? MessageState.GET_STAKES
+      : MessageState.CHOOSE_EDIT;
   }
 
   private async handleCollectStakes(): Promise<MessageState> {
-    try {
-      const newStakes = await this.prompter.promptStakes();
-      this.stakes = newStakes;
-      return MessageState.CHOOSE_EDIT;
-    } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
-      await this.sendErrorMsg(errorText);
-      return MessageState.END;
+    const stakesEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setDescription(`How much are you going to stake?`);
+    await this.channel.send(stakesEmbed);
+
+    // collet user input
+    const userInputMsg = await getUserInputMessage(this.channel, this.userID);
+    if (!userInputMsg) return MessageState.TIMEOUT;
+    if (userInputMsg.content === CANCEL_KEY) return MessageState.CANCEL;
+
+    // validate
+    const stakes = Number(userInputMsg.content);
+    if (isNaN(stakes)) {
+      await this.sendErrorMsg(`Please provide a valid dollar amount.`);
+      return MessageState.GET_STAKES;
     }
+
+    // set states
+    this.stakes = stakes;
+    return MessageState.CHOOSE_EDIT;
   }
 
   private async handleChooseEdit(): Promise<MessageState> {
-    try {
-      // TODO validate props here?
-      // const taskEmbed = createTaskEmbed({
-      //   description: this.description,
-      //   dueAt: this.dueDate,
-      //   stakes: this.stakes,
-      //   userDiscordID: this.userID,
-      //   partnerUserDiscordID: this.partner.id,
-      //   channelID: this.channel.id,
-      // });
-      // await this.channel.send(taskEmbed);
+    if (!this.description || !this.dueDate || !this.stakes || !this.partner) {
+      throw new Error(
+        'Reached CHOOSE_EDIT state with invalid collected data (this should never happen).',
+      ); // TODO sentry
+    }
 
-      const action = await this.prompter.promptEditAction(
-        TaskLegendType.CREATE_NEW,
+    // send embeds
+    const taskEmbed = createTaskEmbed({
+      description: this.description,
+      dueAt: this.dueDate,
+      stakes: this.stakes,
+      partnerUserDiscordID: this.partner.id,
+    });
+    await this.channel.send(taskEmbed);
+
+    const isCreateLegend = true; // TODO change this
+    const reactEmbed = new MessageEmbed()
+      .setColor(theme.colors.primary.main)
+      .setTitle('Task Confirmation')
+      .setDescription(
+        stripIndent`
+      Your task is shown above! To edit your task, use one of the emojis on this message.
+      Be sure to confirm your new task below.
+      (Note: you cannot edit stakes or partner after initial task creation)
+
+      ✏️ Edit title
+      ⏰ Edit due date\
+      ${
+        isCreateLegend ? '\n👯 Edit accountability partner\n💰 Edit stakes' : ''
+      }
+
+      ✅ Confirm
+      ❌ Cancel
+      `,
       );
 
-      if (action === EditAction.DESCRIPTION)
-        return MessageState.GET_DESCRIPTION;
-      if (action === EditAction.DUE_DATE) return MessageState.GET_DUE_DATE;
-      if (action === EditAction.PARTNER) return MessageState.GET_PARTNER;
-      if (action === EditAction.STAKES) return MessageState.GET_STAKES;
-      if (action === EditAction.CONFIRM) {
-        this.completeTaskAdd();
-        return MessageState.END;
-      }
-      if (action === EditAction.CANCEL) {
-        this.cancelTaskAdd();
-        return MessageState.END;
-      }
+    const reactMsg = await this.channel.send(reactEmbed);
 
-      await this.sendErrorMsg(
-        'Received unexpected emoji, cancelling task creation.',
-      );
-      return MessageState.END;
-    } catch (e) {
-      const errorText = e instanceof TimeoutError ? TIMEOUT_ERROR : e.message;
-      await this.sendErrorMsg(errorText);
+    // collect user input
+    const emojis = isCreateLegend
+      ? ['✏️', '⏰', '👯', '💰', '✅', '❌']
+      : ['✏️', '⏰', '✅', '❌'];
+    const reaction = await getUserInputReaction(reactMsg, emojis, this.userID);
+    if (!reaction) return MessageState.TIMEOUT;
+
+    reaction.users
+      .remove(this.userID)
+      .catch((e) => logger.error("Couldn't remove emoji")); // async
+
+    const emoji = reaction.emoji.name;
+    if (emoji === '✏️') return MessageState.GET_DESCRIPTION;
+    if (emoji === '⏰') return MessageState.GET_DUE_DATE;
+    if (emoji === '👯') return MessageState.GET_PARTNER;
+    if (emoji === '💰') return MessageState.GET_STAKES;
+    if (emoji === '❌') return MessageState.CANCEL;
+    if (emoji === '✅') {
+      this.completeTaskAdd();
       return MessageState.END;
     }
+
+    // TODO will this throw when user randomly reacts lol prob not cause filter
+    throw new Error('Received unexpected emoji, cancelling task creation.');
   }
 
   private async completeTaskAdd(): Promise<void> {
+    if (!this.description || !this.dueDate || !this.stakes || !this.partner) {
+      throw new Error(
+        'Reached task add completion with invalid collected data (this should never happen).',
+      ); // TODO sentry
+    }
+
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
       .setDescription(`Your task has been created!`); // TODO mention due date
     await this.channel.send(confirmEmbed);
 
     // save task in db
-    // await taskService.add({
-    //   authorID: this.userID,
-    //   partnerID: this.partner.id,
-    //   channelID: this.channel.id,
-    //   cost: this.stakes,
-    //   name: this.description,
-    //   dueDate: this.dueDate,
-    // });
+    await taskService.add({
+      metaID: Date.now() + Math.random() + '', // TODO use 3rd party lib
+      userDiscordID: this.userID,
+      partnerUserDiscordID: this.partner.id,
+      channelID: this.channel.id,
+      guildID: this.guild.id,
+      stakes: this.stakes,
+      description: this.description,
+      dueAt: this.dueDate,
+      // reminderTimeOffset: parsedReminderMinutes * 60 * 1000,  TODO collect reminder data
+      frequency: {
+        type: TaskFrequency.ONCE,
+      },
+    });
   }
 
   private async cancelTaskAdd(): Promise<void> {

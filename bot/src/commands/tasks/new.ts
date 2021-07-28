@@ -1,5 +1,7 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
+import { MISSING_SETTINGS_ERROR } from '../../bot/errors';
 import TaskAddMessenger from '../../bot/messengers/TaskAddMessenger';
+import guildService from '../../services/guild-service';
 
 class NewCommand extends Command {
   static DEFAULT_CMD_NAME = 'new';
@@ -18,13 +20,19 @@ class NewCommand extends Command {
     const channel = await this.client.channels.fetch(msg.channel.id);
     if (!channel.isText()) return msg.reply('oops');
 
-    // TODO do this lol
-    const taskAddMessenger = new TaskAddMessenger(channel, msg);
+    // TODO add users/members like in schedule command
+
+    // TODO if we embed guild data we wont' have to do this hmmm
+    const guild = await guildService.getByDiscordID(msg.guild.id); // TODO isn't it piossible for guild not to exist (if this command is run in DM)
+    if (!guild) return msg.reply(MISSING_SETTINGS_ERROR); // TODO should this error prevent task from being created?
+    // TODO sentry
+
+    const taskAddMessenger = new TaskAddMessenger(channel, msg, guild);
     try {
       await taskAddMessenger.prompt();
       await channel.send('finished!');
     } catch (e) {
-      await channel.send('something weird happened.........');
+      await channel.send('something weird happened.........'); // TODO change msg lol
     }
 
     return null;

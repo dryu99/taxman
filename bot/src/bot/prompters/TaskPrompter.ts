@@ -64,8 +64,8 @@
 
 //     const reactMsg = await this.channel.send(reactEmbed);
 //     const reaction = await getUserInputReaction(reactMsg, emojis, this.userID);
-//     reaction.users.remove(this.userID); // async
-//     return EMOJI_ACTION_MAP[reaction.emoji.name];
+//     // reaction.users.remove(this.userID); // async
+//     return EMOJI_ACTION_MAP['reaction.emoji.name'];
 //   }
 
 //   public async promptDescription(): Promise<string> {
@@ -75,7 +75,7 @@
 //     await this.channel.send(descriptionEmbed);
 
 //     const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-//     return userInputMsg.content;
+//     return 'userInputMsg.content';
 //   }
 
 //   public async promptDeadline(): Promise<Date> {
@@ -100,7 +100,7 @@
 //     while (!dueDate || !dueDate.isValid) {
 //       // collect user input
 //       const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-//       const dueDateStr = userInputMsg.content;
+//       const dueDateStr = 'userInputMsg.content';
 //       const [date, time] = dueDateStr.trim().split(' ') as [string?, string?];
 //       dueDate = DateTime.fromISO(`${date}T${time}`, {
 //         zone: 'America/Los_Angeles', // TODO change to use user input
@@ -131,16 +131,16 @@
 //     while (!taggedUser) {
 //       // collect user input
 //       const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-//       taggedUser = userInputMsg.mentions.users.first();
+//       // taggedUser = userInputMsg.mentions.users.first();
 
-//       // send error msg on bad input
-//       if (!taggedUser) {
-//         const partnerErrorEmbed = new MessageEmbed()
-//           .setColor(theme.colors.error)
-//           .setDescription(`Please mention your partner with \`@\``);
+//       // // send error msg on bad input
+//       // if (!taggedUser) {
+//       //   const partnerErrorEmbed = new MessageEmbed()
+//       //     .setColor(theme.colors.error)
+//       //     .setDescription(`Please mention your partner with \`@\``);
 
-//         await this.channel.send(partnerErrorEmbed);
-//       }
+//       //   await this.channel.send(partnerErrorEmbed);
+//       // }
 //     }
 //     return taggedUser;
 //   }
@@ -156,7 +156,7 @@
 //     while (!stakes || isNaN(stakes)) {
 //       // collect user input
 //       const userInputMsg = await getUserInputMessage(this.channel, this.userID);
-//       const stakesStr = userInputMsg.content;
+//       const stakesStr = 'userInputMsg.content ';
 //       stakes = Number(stakesStr);
 
 //       // send error msg on bad input

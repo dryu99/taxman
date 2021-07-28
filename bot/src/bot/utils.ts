@@ -47,7 +47,7 @@ export const toMilliseconds = (
 };
 
 export const createTaskEmbed = (
-  task: NewTask,
+  task: Pick<Task, 'description' | 'dueAt' | 'partnerUserDiscordID' | 'stakes'>,
   title?: string,
   description?: string,
 ): MessageEmbed => {
@@ -89,12 +89,15 @@ export const createTaskEmbed = (
 };
 
 // TODO rename to collect
+/**
+ * @returns undefined output implies timeout
+ */
 export const getUserInputReaction = async (
   msg: Message,
   emojis: string[],
   reactorUserID: string,
   reactionTimeLimitMinutes: number = DEFAULT_INPUT_AWAIT_TIME_MIN,
-): Promise<MessageReaction> => {
+): Promise<MessageReaction | undefined> => {
   reactToMsg(msg, emojis); // we don't await here b/c we want to let users react even if not all reactions have appeared
 
   try {
@@ -112,7 +115,8 @@ export const getUserInputReaction = async (
     if (!reaction) throw new Error("Reaction couldn't be collected.");
     return reaction;
   } catch (e) {
-    throw new TimeoutError('User took too long to respond with react input.');
+    // timeout occurred
+    return undefined;
   }
 };
 

@@ -109,7 +109,7 @@ export default class Bot {
 
       if (!channel.isText()) continue; // TODO sentry
 
-      let guild = await guildService.getByDiscordID(dueTask.guildID);
+      const guild = await guildService.getByDiscordID(dueTask.guildID);
       if (!guild) {
         await channel.send(MISSING_SETTINGS_ERROR);
         continue;
