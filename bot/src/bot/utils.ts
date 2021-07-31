@@ -47,7 +47,7 @@ export const toMilliseconds = (
 };
 
 export const createTaskEmbed = (
-  task: Pick<Task, 'description' | 'dueAt' | 'partnerUserDiscordID' | 'stakes'>,
+  task: Pick<Task, 'description' | 'dueAt' | 'partnerUserDiscordID'>, // TODO add stakes once stripe integration is done
   title?: string,
   description?: string,
 ): MessageEmbed => {
@@ -76,10 +76,10 @@ export const createTaskEmbed = (
         name: 'Accountability Partner',
         value: formatMention(task.partnerUserDiscordID),
       },
-      {
-        name: 'Money at stake',
-        value: `$${task.stakes}`,
-      },
+      // {
+      //   name: 'Money at stake',
+      //   value: `$${task.stakes}`,
+      // },
     );
 
   if (title) embed.setTitle(title);

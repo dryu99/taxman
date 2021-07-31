@@ -12,7 +12,7 @@ import { INTERNAL_ERROR, TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
-import { stripIndent } from 'common-tags';
+import { stripIndents } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
 
 enum MessageState {
@@ -23,6 +23,7 @@ enum MessageState {
 
 // TODO consider tagging users outside embed (pop notification on mobile is weird otherwise)
 // TODO partner confirm embed contains redundant info... make it smaller
+// TODO handle errors similar to write msger
 export default class TaskCheckInMessenger extends Messenger {
   private task: Task;
   private state: MessageState;
@@ -63,7 +64,7 @@ export default class TaskCheckInMessenger extends Messenger {
     const reactEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setDescription(
-        stripIndent`
+        stripIndents`
             ${formatMention(this.task.userDiscordID)} your task is due! 🧞‍♂️
 
             Please confirm whether you've completed it or not.
@@ -197,12 +198,16 @@ export default class TaskCheckInMessenger extends Messenger {
       .setColor(theme.colors.error)
       .setTitle(`Task Check-In: Failure`)
       .setDescription(
-        `${formatMention(
-          this.task.userDiscordID,
-        )} The taxman got you... Your stripe account will be charged $${
-          this.task.stakes
-        } within the next few days.`,
+        `${formatMention(this.task.userDiscordID)} The taxman got you...`,
       )
+      // TODO use this once stripe integration is done
+      // .setDescription(
+      //   `${formatMention(
+      //     this.task.userDiscordID,
+      //   )} The taxman got you... Your stripe account will be charged $${
+      //     this.task.stakes
+      //   } within the next few days.`,
+
       .addFields({ name: 'Reason', value: reason });
 
     // update task status

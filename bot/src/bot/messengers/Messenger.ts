@@ -14,7 +14,7 @@ export default abstract class Messenger {
   protected async sendErrorMsg(description: string): Promise<void> {
     const errorEmbed = new MessageEmbed().setColor(theme.colors.error);
     // if (title) errorEmbed.setTitle(title);
-    if (description) errorEmbed.setTitle(description);
+    if (description) errorEmbed.setDescription(description);
     await this.channel.send(errorEmbed);
   }
 }

@@ -59,16 +59,19 @@ class ListCommand extends Command {
       const fields = tasks.map((task, i) => ({
         name: `\`${i + 1}.\`  ${task.description}`,
         value: stripIndent`
-          ID: \`${task.id}\`\
-          ${option === 'all' ? `\nStatus: ${task.status}` : ''}
           ${
             option === 'all'
               ? `Due Date: ${formatDate(task.dueAt)}`
               : `**DUE @ ${formatDate(task.dueAt)}**`
           }
-          Money at stake: $${task.stakes}
+          ID: \`${task.id}\`\
+          ${
+            option === 'all' ? `\nStatus: ${task.status}` : ''
+          }                    
           Accountability Partner: ${formatMention(task.userDiscordID)}
         `,
+
+        // TODO add this to value field once stripe integration is done: Money at stake: $${task.stakes}
       }));
 
       embed.addFields(fields);

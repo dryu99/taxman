@@ -1,4 +1,5 @@
 import { Document, Schema, model } from 'mongoose';
+import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
 
 export enum TaskStatus {
@@ -54,8 +55,11 @@ export const taskSchema = new Schema<Task>(
     partnerUserDiscordID: { type: String, required: true }, // ref
     channelID: { type: String, required: true },
     guildID: { type: String, required: true }, // ref
-    stakes: { type: Number },
-    reminderTimeOffset: { type: Number },
+    stakes: { type: Number, default: 0 },
+    reminderTimeOffset: {
+      type: Number,
+      default: toMilliseconds(30, 'minutes'),
+    },
     wasReminded: { type: Boolean, required: true, default: false }, // TODO consider not doing this, instead make a reminders collection
     frequency: {
       type: {

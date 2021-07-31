@@ -205,7 +205,7 @@ export default class TaskWriteMessenger extends Messenger {
     // Set states
     this.task.partnerUserDiscordID = taggedUser.id;
     return this.workflow === MessengerWorkflow.CREATE
-      ? MessengerState.GET_STAKES
+      ? MessengerState.GET_EDIT_OPTION // TODO change to GET_STAKES once you integrate stripe
       : MessengerState.GET_EDIT_OPTION;
   }
 
@@ -237,15 +237,14 @@ export default class TaskWriteMessenger extends Messenger {
   }
 
   private async handleCollectEditOption(): Promise<MessengerState> {
-    const { description, dueAt, stakes, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !stakes || !partnerUserDiscordID)
+    const { description, dueAt, partnerUserDiscordID } = this.task;
+    if (!description || !dueAt || !partnerUserDiscordID)
       throw new Error(invalidDataErrorMsg(this.handleCollectEditOption.name));
 
     // send embeds
     const taskEmbed = createTaskEmbed({
       description,
       dueAt,
-      stakes,
       partnerUserDiscordID,
     });
     await this.channel.send(taskEmbed);
@@ -255,28 +254,44 @@ export default class TaskWriteMessenger extends Messenger {
       .setTitle('Task Confirmation')
       .setDescription(
         stripIndents`
-      Your task is shown above! To edit your task, use one of the emojis on this message.
-      Be sure to confirm your new task below.
-      (Note: you cannot edit stakes or partner after initial task creation)
-
-      ✏️ Edit title
-      ⏰ Edit due date\
-      ${
-        this.isCreatingNew
-          ? '\n👯 Edit accountability partner\n💰 Edit stakes'
-          : ''
-      }
-
-      ✅ Confirm
-      ❌ Cancel
-      `,
+            Your task is shown above! To edit your task, use one of the emojis on this message.
+            Be sure to confirm your new task below.
+            (Note: you cannot edit partner after initial task creation)
+  
+            ✏️ Edit title
+            ⏰ Edit due date\
+            ${this.isCreatingNew ? '\n👯 Edit accountability partner' : ''}
+  
+            ✅ Confirm
+            ❌ Cancel
+            `,
       );
+    // TODO use this instead once stripe integration is done
+    // .setDescription(
+    //   stripIndents`
+    //     Your task is shown above! To edit your task, use one of the emojis on this message.
+    //     Be sure to confirm your new task below.
+    //     (Note: you cannot edit stakes or partner after initial task creation)
+
+    //     ✏️ Edit title
+    //     ⏰ Edit due date\
+    //     ${
+    //       this.isCreatingNew
+    //         ? '\n👯 Edit accountability partner\n💰 Edit stakes'
+    //         : ''
+    //     }
+
+    //     ✅ Confirm
+    //     ❌ Cancel
+    //     `,
+    // );
 
     const reactMsg = await this.channel.send(reactEmbed);
 
+    // TODO reduce duplication with emojis
     // collect user input
     const emojis = this.isCreatingNew
-      ? ['✏️', '⏰', '👯', '💰', '✅', '❌'] // TODO reduce duplication with emojis
+      ? ['✏️', '⏰', '👯', '✅', '❌'] // TODO add stakes emoji once stripe integration is done
       : ['✏️', '⏰', '✅', '❌'];
     const reaction = await getUserInputReaction(
       reactMsg,
@@ -307,7 +322,7 @@ export default class TaskWriteMessenger extends Messenger {
 
   private async completeTaskAdd(): Promise<void> {
     const { description, dueAt, stakes, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !stakes || !partnerUserDiscordID)
+    if (!description || !dueAt || !partnerUserDiscordID)
       throw new Error(invalidDataErrorMsg(this.completeTaskAdd.name));
 
     const confirmEmbed = new MessageEmbed()
@@ -322,7 +337,7 @@ export default class TaskWriteMessenger extends Messenger {
       channelID: this.channel.id,
       guildID: this.guild.id,
       description,
-      stakes,
+      stakes, // optional
       dueAt,
       partnerUserDiscordID,
       // reminderTimeOffset: parsedReminderMinutes * 60 * 1000,  TODO collect reminder data
