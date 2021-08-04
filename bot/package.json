@@ -1,0 +1,33 @@
+{
+  "name": "taxman",
+  "version": "1.0.0",
+  "description": "He's the taxman yeah yeah",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon -e js,ts --watch src --exec \"yarn build && node dist/index.js\"",
+    "build": "rm -rf ./dist/ && tsc",
+    "debug": "yarn debug"
+  },
+  "author": "abyssal512",
+  "license": "MIT",
+  "dependencies": {
+    "common-tags": "^1.8.0",
+    "dayjs": "^1.10.6",
+    "discord.js": "^12.5.3",
+    "discord.js-commando": "^0.12.3",
+    "dotenv": "^10.0.0",
+    "mongoose": "^5.13.2"
+  },
+  "devDependencies": {
+    "@types/common-tags": "^1.8.1",
+    "@types/dotenv": "^8.2.0",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "15.0.0",
+    "cross-env": "^7.0.3",
+    "nodemon": "^2.0.12",
+    "prettier": "^2.3.2",
+    "tslib": "^2.3.0",
+    "typescript": "^4.3.5"
+  }
+}

@@ -1,1 +1,0 @@
-export const DEFAULT_INPUT_AWAIT_TIME_MIN = 5;
