@@ -96,7 +96,7 @@ export const getUserInputReaction = async (
   msg: Message,
   emojis: string[],
   reactorUserID: string,
-  reactionTimeLimitMinutes: number = DEFAULT_INPUT_AWAIT_TIME_MIN,
+  reactionTimeoutMinutes: number = DEFAULT_INPUT_AWAIT_TIME_MIN, // TODO change this to milliseconds lmao
 ): Promise<MessageReaction | undefined> => {
   reactToMsg(msg, emojis); // we don't await here b/c we want to let users react even if not all reactions have appeared
 
@@ -106,7 +106,7 @@ export const getUserInputReaction = async (
         emojis.includes(reaction.emoji.name) && user.id === reactorUserID,
       {
         max: 1,
-        time: toMilliseconds(reactionTimeLimitMinutes, 'minutes'),
+        time: toMilliseconds(reactionTimeoutMinutes, 'minutes'),
         errors: ['time'],
       },
     );

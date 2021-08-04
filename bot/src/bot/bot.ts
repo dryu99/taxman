@@ -109,8 +109,10 @@ export default class Bot {
 
       if (!channel.isText()) continue; // TODO sentry
 
-      const guild = await guildService.getByDiscordID(dueTask.guildID);
+      // TODO shouldn't have to fetch here, should get populated from dueTask
+      const guild = await guildService.getByID(dueTask.guildID);
       if (!guild) {
+        logger.error(MISSING_SETTINGS_ERROR, dueTask);
         await channel.send(MISSING_SETTINGS_ERROR);
         continue;
         // TODO sentry

@@ -1,3 +1,4 @@
+import logger from '../lib/logger';
 import GuildModel, { Guild } from '../models/GuildModel';
 
 // TODO if user kicks bot, what happens to settings in db?
@@ -26,6 +27,17 @@ const getByDiscordID = async (
     const guild = await GuildModel.findOne({ discordID });
     return guild || undefined;
   } catch (e) {
+    logger.error(e);
+    return undefined;
+  }
+};
+
+const getByID = async (id: string): Promise<Guild | undefined> => {
+  try {
+    const guild = await GuildModel.findById(id);
+    return guild || undefined;
+  } catch (e) {
+    logger.error(e);
     return undefined;
   }
 };
@@ -33,6 +45,7 @@ const getByDiscordID = async (
 const guildService = {
   init,
   getByDiscordID,
+  getByID,
 };
 
 export default guildService;

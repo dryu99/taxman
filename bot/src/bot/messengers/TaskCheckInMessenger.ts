@@ -84,7 +84,7 @@ export default class TaskCheckInMessenger extends Messenger {
         reactMsg,
         ['👍', '👎'],
         this.task.userDiscordID,
-        reactionTimeoutMinutes, // TODO pass settings time limit here
+        reactionTimeoutMinutes,
       );
 
       if (!reaction) {

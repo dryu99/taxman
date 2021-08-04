@@ -372,17 +372,6 @@ export default class TaskWriteMessenger extends Messenger {
     );
   }
 
-  // private makePromptEmbed(description: string): MessageEmbed {
-  //   const embed = new MessageEmbed()
-  //     .setColor(theme.colors.primary.main)
-  //     .setDescription(stripIndent(description));
-
-  //   if (this.isCreatingNew && this.workflow === MessengerWorkflow.CREATE) {
-  //     embed.setFooter('Type "cancel" to stop');
-  //   }
-  //   return embed;
-  // }
-
   private async sendPromptEmbed(description: string): Promise<Message> {
     const embed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
