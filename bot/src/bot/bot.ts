@@ -7,8 +7,9 @@ import guildService from '../services/guild-service';
 import taskEventService from '../services/task-event-service';
 // import taskService from '../services/task-service';
 import { MISSING_SETTINGS_ERROR } from './errors';
-// import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
+import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
 import { formatMention } from './utils';
+import nodeSchedule from 'node-schedule';
 
 export default class Bot {
   static NAME: string = 'TaxBot';
@@ -87,6 +88,32 @@ export default class Bot {
     // // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
     const todayTaskEvents = await taskEventService.getTodayEvents();
     logger.info("  Today's task events:", todayTaskEvents);
+
+    for (const taskEvent of todayTaskEvents) {
+      nodeSchedule.scheduleJob(taskEvent.dueAt, async () => {
+        let channel: Channel | undefined;
+        try {
+          channel = await this.client.channels.fetch(
+            taskEvent.schedule.channelID,
+          );
+        } catch (e) {
+          // possible errors:
+          //  - channel doesn't exist anymore
+          //  - bot was kicked from guild
+          logger.error(e);
+          // TODO implement this for task event service
+          // await taskEventService.update(dueTask.id, {
+          //   status: TaskStatus.FORCE_CANCELLED,
+          // });
+        }
+        const taskCheckInMessenger = new TaskCheckInMessenger(
+          taskEvent,
+          channel,
+          guild,
+        );
+      });
+    }
+
     // const dueTasks = await taskService.getDueTasks(new Date());
     // logger.info('  Due tasks:', dueTasks);
 

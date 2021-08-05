@@ -21,7 +21,7 @@ const getTodayEvents = async (): Promise<TaskEvent[]> => {
   const todayEvents = await TaskEventModel.find({
     dueAt: { $lte: todayEndDate },
     status: TaskEventStatus.PENDING,
-  });
+  }).populate('schedule');
 
   return todayEvents;
 };
