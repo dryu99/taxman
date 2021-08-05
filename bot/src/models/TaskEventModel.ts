@@ -35,7 +35,7 @@ export const taskEventSchema = new Schema<TaskEvent>(
     dueAt: { type: Date, required: true },
     schedule: [taskScheduleSchema],
     status: {
-      type: String,
+      type: Number,
       enum: Object.values(TaskEventStatus),
       default: TaskEventStatus.PENDING,
     },
