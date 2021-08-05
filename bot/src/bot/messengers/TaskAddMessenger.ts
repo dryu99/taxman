@@ -1,6 +1,6 @@
 import { Message, MessageEmbed } from 'discord.js';
 import logger from '../../lib/logger';
-import { Task, TaskFrequency } from '../../models/TaskModel';
+// import { Task, TaskFrequency } from '../../models/TaskModel';
 import { TIMEOUT_ERROR } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
@@ -11,10 +11,15 @@ import {
   getUserInputMessage,
   getUserInputReaction,
 } from '../utils';
-import taskService from '../../services/task-service';
+// import taskService from '../../services/task-service';
 import dayjs from 'dayjs';
 import { stripIndents } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
+import {
+  TaskSchedule,
+  TaskScheduleFrequency,
+} from '../../models/TaskScheduleModel';
+import taskScheduleService from '../../services/task-schedule-service';
 
 enum MessengerState {
   END = 'end',
@@ -49,24 +54,34 @@ export default class TaskWriteMessenger extends Messenger {
   private guild: Guild;
   private isCreatingNew: boolean; // specifies whether msger is creating or updating task
   private userDiscordID: string;
-  private task: Partial<Task>; // contains task metadata we write to db
+
+  // schedule metadata
+  private collectData: {
+    taskID?: string;
+    description?: string;
+    dueDate?: Date;
+    partnerUserDiscordID?: string;
+    stakes?: number;
+  };
+
+  // private task: Partial<Task>; // contains task metadata we write to db
 
   constructor(
     channel: DiscordTextChannel,
     userDiscordID: string,
     guild: Guild,
-    task?: Task, // if it exists, user is editing, ow user is creating new
+    taskSchedule?: TaskSchedule, // if it exists, user is editing, ow user is creating new
   ) {
     super(channel);
     this.userDiscordID = userDiscordID;
     this.guild = guild;
     this.workflow = MessengerWorkflow.CREATE;
-    this.isCreatingNew = task === undefined;
+    this.isCreatingNew = taskSchedule === undefined;
     this.state =
-      task === undefined
+      taskSchedule === undefined
         ? MessengerState.GET_DESCRIPTION
         : MessengerState.GET_EDIT_OPTION; // initial state
-    this.task = task ? task : {};
+    this.collectData = taskSchedule ? { ...taskSchedule } : {};
   }
 
   public async start(): Promise<void> {
@@ -126,7 +141,7 @@ export default class TaskWriteMessenger extends Messenger {
     }
 
     // Set task state + advance next msg state
-    this.task.description = userInputMsg.content;
+    this.collectData.description = userInputMsg.content;
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_DUE_DATE
       : MessengerState.GET_EDIT_OPTION;
@@ -168,7 +183,7 @@ export default class TaskWriteMessenger extends Messenger {
     }
 
     // Set task state + advance next msg state
-    this.task.dueAt = dueDate.toDate();
+    this.collectData.dueDate = dueDate.toDate();
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_PARTNER
       : MessengerState.GET_EDIT_OPTION;
@@ -203,7 +218,7 @@ export default class TaskWriteMessenger extends Messenger {
     }
 
     // Set states
-    this.task.partnerUserDiscordID = taggedUser.id;
+    this.collectData.partnerUserDiscordID = taggedUser.id;
     return this.workflow === MessengerWorkflow.CREATE
       ? MessengerState.GET_EDIT_OPTION // TODO change to GET_STAKES once you integrate stripe
       : MessengerState.GET_EDIT_OPTION;
@@ -232,19 +247,19 @@ export default class TaskWriteMessenger extends Messenger {
     }
 
     // set states
-    this.task.stakes = stakes;
+    this.collectData.stakes = stakes;
     return MessengerState.GET_EDIT_OPTION;
   }
 
   private async handleCollectEditOption(): Promise<MessengerState> {
-    const { description, dueAt, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !partnerUserDiscordID)
+    const { description, dueDate, partnerUserDiscordID } = this.collectData;
+    if (!description || !dueDate || !partnerUserDiscordID)
       throw new Error(invalidDataErrorMsg(this.handleCollectEditOption.name));
 
     // send embeds
     const taskEmbed = createTaskEmbed({
       description,
-      dueAt,
+      dueAt: dueDate,
       partnerUserDiscordID,
     });
     await this.channel.send(taskEmbed);
@@ -321,35 +336,39 @@ export default class TaskWriteMessenger extends Messenger {
   }
 
   private async completeTaskAdd(): Promise<void> {
-    const { description, dueAt, stakes, partnerUserDiscordID } = this.task;
-    if (!description || !dueAt || !partnerUserDiscordID)
+    const { description, dueDate, stakes, partnerUserDiscordID } =
+      this.collectData;
+    if (!description || !dueDate || !partnerUserDiscordID)
       throw new Error(invalidDataErrorMsg(this.completeTaskAdd.name));
 
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)
-      .setDescription(`Task created successfully! Due @ ${formatDate(dueAt)}.`);
+      .setDescription(
+        `Task created successfully! Due @ ${formatDate(dueDate)}.`,
+      );
     await this.channel.send(confirmEmbed);
 
     // save task in db
-    await taskService.add({
-      metaID: Date.now() + Math.random() + '', // TODO use 3rd party lib
-      userDiscordID: this.userDiscordID,
-      channelID: this.channel.id,
-      guildID: this.guild.id,
-      description,
-      stakes, // optional
-      dueAt,
-      partnerUserDiscordID,
-      // reminderTimeOffset: parsedReminderMinutes * 60 * 1000,  TODO collect reminder data
-      frequency: {
-        type: TaskFrequency.ONCE,
+    await taskScheduleService.add(
+      {
+        userDiscordID: this.userDiscordID,
+        channelID: this.channel.id,
+        description,
+        stakes, // optional
+        startAt: dueDate,
+        partnerUserDiscordID,
+        // reminderTimeOffset: parsedReminderMinutes * 60 * 1000,  TODO collect reminder data
+        frequency: {
+          type: TaskScheduleFrequency.ONCE,
+        },
       },
-    });
+      this.guild.id,
+    );
   }
 
   private async completeTaskEdit(): Promise<void> {
-    const { description, dueAt, id: taskID } = this.task;
-    if (!description || !dueAt || !taskID)
+    const { description, dueDate, taskID } = this.collectData;
+    if (!description || !dueDate || !taskID)
       throw new Error(invalidDataErrorMsg(this.completeTaskEdit.name));
 
     const confirmEmbed = new MessageEmbed()
@@ -358,9 +377,9 @@ export default class TaskWriteMessenger extends Messenger {
     await this.channel.send(confirmEmbed);
 
     // Update task in db
-    await taskService.update(taskID, {
+    await taskScheduleService.update(taskID, {
       description,
-      dueAt,
+      startAt: dueDate,
     });
   }
 

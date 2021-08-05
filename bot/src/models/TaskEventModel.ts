@@ -19,9 +19,7 @@ interface TaskEventMeta {
 }
 
 // TODO might not need this (maybe enough to just pass schedule id)
-export interface NewTaskEvent extends TaskEventMeta {
-  scheduleID: string;
-}
+export interface NewTaskEvent extends TaskEventMeta {}
 
 export interface TaskEvent extends TaskEventMeta, MongoModel {
   schedule: TaskSchedule;
@@ -33,7 +31,11 @@ export type TaskEventDocument = TaskEvent & Document<any, any, TaskEvent>;
 export const taskEventSchema = new Schema<TaskEvent>(
   {
     dueAt: { type: Date, required: true },
-    schedule: [taskScheduleSchema],
+    schedule: {
+      type: Schema.Types.ObjectId,
+      ref: 'TaskSchedule',
+      required: true,
+    }, // TODO consider changing to embed
     status: {
       type: Number,
       enum: Object.values(TaskEventStatus),

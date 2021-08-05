@@ -14,16 +14,16 @@ import { Guild } from './GuildModel';
 // }
 
 export enum TaskScheduleFrequency {
-  ONCE = 'once',
+  ONCE,
   // TODO prob change below ones (refer here https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysschedules-transact-sql?redirectedfrom=MSDN&view=sql-server-ver15)
-  RECURRING = 'recurring',
-  CUSTOM_WEEKLY = 'custom_weekly',
-  CUSTOM_MONTHLY = 'custom_monthly',
+  RECURRING,
+  CUSTOM_WEEKLY,
+  CUSTOM_MONTHLY,
 }
 
 interface TaskScheduleMeta {
   userDiscordID: string;
-  userPartnerDiscordID: string;
+  partnerUserDiscordID: string;
   description: string;
   stakes?: number; // $ amount
   channelID: string;
@@ -39,9 +39,7 @@ interface TaskScheduleMeta {
   };
 }
 
-export interface NewTaskSchedule extends TaskScheduleMeta {
-  guildDiscordID: string;
-}
+export interface NewTaskSchedule extends TaskScheduleMeta {}
 
 export interface TaskSchedule extends TaskScheduleMeta, MongoModel {
   // TODO add these when we need it
@@ -66,7 +64,7 @@ export const taskScheduleSchema = new Schema<TaskSchedule>(
     description: { type: String, required: true, trim: true },
     stakes: { type: Number, required: true, default: 0 },
     channelID: { type: String, required: true },
-    startDate: { type: Date, required: true },
+    startAt: { type: Date, required: true },
     enabled: { type: Boolean, required: true, default: true },
     reminderTimeOffset: {
       type: Number,
@@ -75,7 +73,7 @@ export const taskScheduleSchema = new Schema<TaskSchedule>(
     },
     frequency: {
       type: {
-        type: String,
+        type: Number,
         enum: Object.values(TaskScheduleFrequency),
         required: true,
       },

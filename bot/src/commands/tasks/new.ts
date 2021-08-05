@@ -19,7 +19,10 @@ class NewCommand extends Command {
 
   async run(msg: CommandoMessage) {
     const channel = await this.client.channels.fetch(msg.channel.id);
-    if (!channel.isText()) return msg.reply('oops');
+    if (!channel.isText())
+      return msg.reply(
+        'Bot expected a Text channel but received something else.',
+      );
 
     // TODO add users/members like in schedule command
 
