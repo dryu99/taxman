@@ -21,28 +21,31 @@ const getTodayEvents = async (): Promise<TaskEvent[]> => {
   const todayEvents = await TaskEventModel.find({
     dueAt: { $lte: todayEndDate },
     status: TaskEventStatus.PENDING,
-  }).populate('schedule');
+  }).populate({
+    path: 'schedule',
+    populate: { path: 'guild' },
+  });
 
   return todayEvents;
 };
 
-// const update = async (
-//   scheduleID: string,
-//   newProps: Partial<TaskSchedule>,
-// ): Promise<TaskSchedule | undefined> => {
-//   // TODO try catch ?
-//   const updatedSchedule = await TaskScheduleModel.findByIdAndUpdate(
-//     scheduleID,
-//     newProps,
-//     { new: true },
-//   );
-//   return updatedSchedule || undefined;
-// };
+const update = async (
+  eventID: string,
+  newProps: Partial<TaskEvent>,
+): Promise<TaskEvent | undefined> => {
+  // TODO try catch ?
+  const updatedEvent = await TaskEventModel.findByIdAndUpdate(
+    eventID,
+    newProps,
+    { new: true },
+  );
+  return updatedEvent || undefined;
+};
 
 const taskEventService = {
   add,
   getTodayEvents,
-  // update,
+  update,
 };
 
 export default taskEventService;

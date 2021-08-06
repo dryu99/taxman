@@ -1,5 +1,4 @@
 import { MessageEmbed } from 'discord.js';
-import { Task, TaskStatus } from '../../models/TaskModel';
 import {
   createTaskEmbed,
   formatMention,
@@ -7,13 +6,16 @@ import {
   toMinutes,
 } from '../utils';
 import theme from '../theme';
-import taskService from '../../services/task-service';
 import { INTERNAL_ERROR, TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
 import Messenger from './Messenger';
 import { stripIndents } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
+import { TaskEvent, TaskEventStatus } from '../../models/TaskEventModel';
+import { TaskSchedule } from '../../models/TaskScheduleModel';
+import taskScheduleService from '../../services/task-schedule-service';
+import taskEventService from '../../services/task-event-service';
 
 enum MessageState {
   USER_CONFIRM = 'user_confirm',
@@ -25,18 +27,21 @@ enum MessageState {
 // TODO partner confirm embed contains redundant info... make it smaller
 // TODO handle errors similar to write msger
 export default class TaskCheckInMessenger extends Messenger {
-  private task: Task;
-  private state: MessageState;
+  private taskEvent: TaskEvent;
+  private taskSchedule: TaskSchedule;
   private guild: Guild;
+  private state: MessageState;
 
-  constructor(task: Task, channel: DiscordTextChannel, guild: Guild) {
+  constructor(taskEvent: TaskEvent, channel: DiscordTextChannel) {
     super(channel);
-    this.task = task;
+    this.taskEvent = taskEvent;
+    this.taskSchedule = taskEvent.schedule;
+    this.guild = taskEvent.schedule.guild;
     this.state = MessageState.USER_CONFIRM; // start state
-    this.guild = guild;
   }
 
   public async start() {
+    logger.info('Starting task checkin', this.taskEvent.id);
     while (true) {
       switch (this.state) {
         case MessageState.USER_CONFIRM:
@@ -46,7 +51,7 @@ export default class TaskCheckInMessenger extends Messenger {
           this.state = await this.handlePartnerConfirm();
           break;
         case MessageState.END:
-          logger.info('exiting message loop');
+          logger.info('Ending task checkin', this.taskEvent.id);
           return;
         default:
           logger.error('Unknown state received', this.state);
@@ -60,12 +65,18 @@ export default class TaskCheckInMessenger extends Messenger {
     const reactionTimeoutMinutes = toMinutes(
       this.guild.settings.reactionTimeoutLength,
     );
-    const taskEmbed = createTaskEmbed(this.task);
+    const taskEmbed = createTaskEmbed({
+      description: this.taskSchedule.description,
+      partnerUserDiscordID: this.taskSchedule.partnerUserDiscordID,
+      dueAt: this.taskEvent.dueAt,
+    });
     const reactEmbed = new MessageEmbed()
       .setColor(theme.colors.primary.main)
       .setDescription(
         stripIndents`
-            ${formatMention(this.task.userDiscordID)} your task is due! 🧞‍♂️
+            ${formatMention(
+              this.taskSchedule.userDiscordID,
+            )} your task is due! 🧞‍♂️
 
             Please confirm whether you've completed it or not.
 
@@ -76,14 +87,14 @@ export default class TaskCheckInMessenger extends Messenger {
 
     try {
       await this.channel.send(
-        `${formatMention(this.task.userDiscordID)} 🔔 TASK CHECK-IN 🔔`,
+        `${formatMention(this.taskSchedule.userDiscordID)} 🔔 TASK CHECK-IN 🔔`,
         { embed: taskEmbed },
       );
       const reactMsg = await this.channel.send(reactEmbed); // TODO v13: send multiple embeds in 1 msg
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
-        this.task.userDiscordID,
+        this.taskSchedule.userDiscordID,
         reactionTimeoutMinutes,
       );
 
@@ -124,8 +135,8 @@ export default class TaskCheckInMessenger extends Messenger {
       .setColor(theme.colors.primary.main)
       .setDescription(
         `Please confirm that ${formatMention(
-          this.task.userDiscordID,
-        )} has completed their task. 
+          this.taskSchedule.userDiscordID,
+        )} has completed their task.
         `,
       )
       .setFooter(`You have ${reactionTimeoutMinutes} minutes to respond.`);
@@ -133,7 +144,7 @@ export default class TaskCheckInMessenger extends Messenger {
     try {
       const reactMsg = await this.channel.send(
         `${formatMention(
-          this.task.partnerUserDiscordID,
+          this.taskSchedule.partnerUserDiscordID,
         )} 🔔 TASK CHECK-IN: PARTNER CONFIRMATION 🔔`,
         { embed: reactEmbed },
       );
@@ -141,7 +152,7 @@ export default class TaskCheckInMessenger extends Messenger {
       const reaction = await getUserInputReaction(
         reactMsg,
         ['👍', '👎'],
-        this.task.partnerUserDiscordID,
+        this.taskSchedule.partnerUserDiscordID,
         reactionTimeoutMinutes,
       );
 
@@ -182,12 +193,20 @@ export default class TaskCheckInMessenger extends Messenger {
       .setTitle(`Task Check-In: Success`)
       .setDescription(
         `${formatMention(
-          this.task.userDiscordID,
+          this.taskSchedule.userDiscordID,
         )} Great job, you have evaded the taxman!`,
       );
 
+    // update task event
+    await taskEventService.update(this.taskEvent.id, {
+      status: TaskEventStatus.SUCCESS,
+    });
+
     // update task status
-    await taskService.update(this.task.id, { status: TaskStatus.COMPLETED });
+    // TODO should only be conditionally disabled based on freq, for now we'll always disable
+    await taskScheduleService.update(this.taskSchedule.id, {
+      enabled: false,
+    });
 
     // TODO 'your next task is...?' or 'create a new task!'
     await this.channel.send(embed);
@@ -198,7 +217,9 @@ export default class TaskCheckInMessenger extends Messenger {
       .setColor(theme.colors.error)
       .setTitle(`Task Check-In: Failure`)
       .setDescription(
-        `${formatMention(this.task.userDiscordID)} The taxman got you...`,
+        `${formatMention(
+          this.taskSchedule.userDiscordID,
+        )} The taxman got you...`,
       )
       // TODO use this once stripe integration is done
       // .setDescription(
@@ -210,8 +231,16 @@ export default class TaskCheckInMessenger extends Messenger {
 
       .addFields({ name: 'Reason', value: reason });
 
+    // update task event
+    await taskEventService.update(this.taskEvent.id, {
+      status: TaskEventStatus.FAIL,
+    });
+
     // update task status
-    await taskService.update(this.task.id, { status: TaskStatus.FAILED });
+    // TODO should only be conditionally disabled based on freq, for now we'll always disable
+    await taskScheduleService.update(this.taskSchedule.id, {
+      enabled: false,
+    });
 
     await this.channel.send(embed);
   }

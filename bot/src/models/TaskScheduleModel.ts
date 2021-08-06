@@ -45,7 +45,7 @@ export interface TaskSchedule extends TaskScheduleMeta, MongoModel {
   // TODO add these when we need it
   // user: User;
   // userPartner: User;
-  guild: Guild;
+  guild: Guild; // TODO consider adding | string (for unpopulated cases??)
   enabled: boolean; // cancelled schedules are disabled
 }
 

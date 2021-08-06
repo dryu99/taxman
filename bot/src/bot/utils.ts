@@ -1,16 +1,7 @@
 import dayjs from 'dayjs';
-import {
-  Channel,
-  Message,
-  MessageEmbed,
-  MessageReaction,
-  User,
-} from 'discord.js';
-import logger from '../lib/logger';
-import { Guild } from '../models/GuildModel';
-import { NewTask, Task } from '../models/TaskModel';
+import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
+import { Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
-import { TimeoutError } from './errors';
 import theme from './theme';
 import { DiscordTextChannel } from './types';
 
@@ -44,6 +35,18 @@ export const toMilliseconds = (
   timeType: 'hours' | 'minutes',
 ) => {
   return timeType === 'hours' ? timeVal * 1000 * 60 * 60 : timeVal * 1000 * 60;
+};
+
+export const _p = async <T>(
+  promise: Promise<T>,
+): Promise<[T | null, Record<string, string> | null]> => {
+  try {
+    const result = await promise;
+    return [result, null];
+  } catch (error) {
+    console.error('CUSTOM ERROR HANDLER', error);
+    return [null, error];
+  }
 };
 
 export const createTaskEmbed = (
