@@ -150,7 +150,7 @@ export default class TaskWriteMessenger extends Messenger {
 
   private async handleCollectDueDate(): Promise<MessengerState> {
     // Send embed prompt
-    const currDate = dayjs().add(3, 'minutes'); // TODO change for prod
+    const currDate = dayjs().add(2, 'minutes'); // TODO change for prod
     const dateExample = currDate.format('MM/DD/YYYY h:mm a');
 
     // TODO can reword this. (When will you commit by?)
@@ -369,7 +369,10 @@ export default class TaskWriteMessenger extends Messenger {
 
     // Save first task event in db
     if (taskSchedule.frequency.type === TaskScheduleFrequency.ONCE) {
-      const newEvent: NewTaskEvent = { dueAt: taskSchedule.startAt };
+      const newEvent: NewTaskEvent = {
+        userDiscordID: this.userDiscordID,
+        dueAt: taskSchedule.startAt,
+      };
       const taskEvent = await taskEventService.add(newEvent, taskSchedule.id);
 
       // Schedule the event if start date is <= today 11:59 pm

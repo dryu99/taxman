@@ -16,6 +16,7 @@ export enum TaskEventStatus {
 
 interface TaskEventMeta {
   dueAt: Date;
+  userDiscordID: string; // redundant but makes querying easier
 }
 
 // TODO might not need this (maybe enough to just pass schedule id)
@@ -41,6 +42,7 @@ export const taskEventSchema = new Schema<TaskEvent>(
       enum: Object.values(TaskEventStatus),
       default: TaskEventStatus.PENDING,
     },
+    userDiscordID: { type: String, required: true },
   },
   { timestamps: true },
 );

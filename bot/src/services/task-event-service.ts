@@ -35,6 +35,29 @@ const getTodayEvents = async (): Promise<TaskEvent[]> => {
   return todayEvents;
 };
 
+const getUserEvents = async (
+  userDiscordID: string,
+  status?: TaskEventStatus,
+): Promise<TaskEvent[]> => {
+  const filter: Partial<TaskEvent> = {};
+
+  // if no status given, don't filter
+  if (status) {
+    filter.status = status;
+  }
+
+  const events = await TaskEventModel.find({
+    userDiscordID,
+    ...filter,
+  })
+    .sort({
+      dueAt: status === TaskEventStatus.PENDING ? 1 : -1,
+      createdAt: -1,
+    })
+    .populate('schedule');
+  return events;
+};
+
 const update = async (
   eventID: string,
   newProps: Partial<TaskEvent>,
@@ -51,6 +74,7 @@ const update = async (
 const taskEventService = {
   add,
   getTodayEvents,
+  getUserEvents,
   update,
 };
 

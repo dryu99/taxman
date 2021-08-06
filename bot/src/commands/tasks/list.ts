@@ -1,11 +1,11 @@
 import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
-import { Task, TaskStatus } from '../../models/TaskModel';
-import taskService from '../../services/task-service';
 import { formatDate, formatMention } from '../../bot/utils';
 import ScheduleCommand from './schedule';
 import { stripIndent } from 'common-tags';
+import taskEventService from '../../services/task-event-service';
+import { TaskEventStatus } from '../../models/TaskEventModel';
 
 enum ListCommandArgs {
   OPTION = 'option',
@@ -29,7 +29,7 @@ class ListCommand extends Command {
             \`all\` -> view all tasks
           `,
           type: 'string',
-          oneOf: ['all', 'upcoming'],
+          // oneOf: ['all', 'upcoming'],
           default: 'upcoming', // TODO wtf delete
         },
       ],
@@ -42,9 +42,11 @@ class ListCommand extends Command {
     const { option } = args;
 
     // Fetch user tasks
-    const tasks = await taskService.getUserTasks(
+    const taskEvents = await taskEventService.getUserEvents(
       msg.author.id,
-      option === 'upcoming' ? TaskStatus.PENDING : undefined,
+      // TODO do sth like this once you get around to supporting more list options
+      // option === 'upcoming' ? TaskEventStatus.PENDING : undefined,
+      TaskEventStatus.PENDING,
     );
 
     // Create embed
@@ -55,20 +57,22 @@ class ListCommand extends Command {
       .setColor(theme.colors.primary.main)
       .setTitle(title);
 
-    if (tasks.length > 0) {
-      const fields = tasks.map((task, i) => ({
-        name: `\`${i + 1}.\`  ${task.description}`,
+    if (taskEvents.length > 0) {
+      const fields = taskEvents.map((event, i) => ({
+        name: `\`${i + 1}.\`  ${event.schedule.description}`,
         value: stripIndent`
           ${
             option === 'all'
-              ? `Due Date: ${formatDate(task.dueAt)}`
-              : `**DUE @ ${formatDate(task.dueAt)}**`
+              ? `Due Date: ${formatDate(event.dueAt)}`
+              : `**DUE @ ${formatDate(event.dueAt)}**`
           }
-          ID: \`${task.id}\`\
+          ID: \`${event.id}\`\
           ${
-            option === 'all' ? `\nStatus: ${task.status}` : ''
+            option === 'all' ? `\nStatus: ${event.status}` : ''
           }                    
-          Accountability Partner: ${formatMention(task.userDiscordID)}
+          Accountability Partner: ${formatMention(
+            event.schedule.partnerUserDiscordID,
+          )}
         `,
 
         // TODO add this to value field once stripe integration is done: Money at stake: $${task.stakes}
