@@ -4,7 +4,7 @@ import logger from '../lib/logger';
 import guildService from '../services/guild-service';
 import taskEventService from '../services/task-event-service';
 import { formatDate, toMilliseconds } from './utils';
-import taskScheduler from './task-event-scheduler';
+import TaskScheduler from './task-event-scheduler';
 
 export default class Bot {
   static NAME: string = 'TaxBot';
@@ -61,6 +61,9 @@ export default class Bot {
     this.client.on('error', (error) => {
       logger.error('BLAH', error);
     });
+
+    // Other configuration
+    TaskScheduler.init(this.client);
   }
 
   // TODO might need to handle case where this fires before client is ready
@@ -96,7 +99,7 @@ export default class Bot {
       })),
     );
 
-    taskScheduler.scheduleTaskEvents(todayTaskEvents, this.client);
+    TaskScheduler.scheduleEvents(todayTaskEvents);
 
     // const dueTasks = await taskService.getDueTasks(new Date());
     // logger.info('  Due tasks:', dueTasks);

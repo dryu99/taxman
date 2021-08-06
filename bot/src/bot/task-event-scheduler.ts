@@ -5,55 +5,71 @@ import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
 import { TaskEvent, TaskEventStatus } from '../models/TaskEventModel';
 import taskEventService from '../services/task-event-service';
 import logger from '../lib/logger';
+import { formatDate } from './utils';
 
-// TODO consider making this a singleton or sth (so we can init client and not have to consume param)
+const TaskScheduler = (function () {
+  let _client: Client | undefined;
 
-const scheduleTaskEvent = (taskEvent: TaskEvent, client: Client) => {
-  nodeSchedule.scheduleJob(taskEvent.dueAt, async () => {
-    let channel: Channel | undefined;
-    try {
-      channel = await client.channels.fetch(taskEvent.schedule.channelID);
-    } catch (e) {
-      // possible errors:
-      //  - channel doesn't exist anymore
-      //  - bot was kicked from guild
-      logger.error(e);
-      await taskEventService.update(taskEvent.id, {
-        status: TaskEventStatus.FORCE_CANCEL,
-      });
-      return;
+  const init = (client: Client) => {
+    _client = client;
+  };
+
+  // TODO should do a check here to see if task event was supposed to be fired yesterday (sth messed up)
+
+  // TODO we're using closures here to access vars like the discord client and taskEvent.
+  //      How does this affect performance? At some point we should benchmark it and see if we should bind() or sth.
+  //      We coudl alternatively make a DB call for each scheduled task instead to get meta
+  const scheduleEvent = (taskEvent: TaskEvent) => {
+    logger.info('Scheduling Task', taskEvent);
+    nodeSchedule.scheduleJob(taskEvent.dueAt, async () => {
+      logger.info('Running scheduled task', taskEvent);
+      if (!_verifyInit(_client)) return;
+
+      let channel: Channel | undefined;
+      try {
+        channel = await _client.channels.fetch(taskEvent.schedule.channelID);
+      } catch (e) {
+        // possible errors:
+        //  - channel doesn't exist anymore
+        //  - bot was kicked from guild
+        logger.error(e);
+        await taskEventService.update(taskEvent.id, {
+          status: TaskEventStatus.FORCE_CANCEL,
+        });
+        return;
+      }
+
+      if (!channel.isText()) return;
+      try {
+        const taskCheckInMessenger = new TaskCheckInMessenger(
+          taskEvent,
+          channel,
+        );
+        taskCheckInMessenger.start(); // async
+      } catch (error) {
+        logger.error('Something went wrong with check in...', error);
+      }
+    });
+  };
+
+  const scheduleEvents = (taskEvents: TaskEvent[]) => {
+    for (const taskEvent of taskEvents) {
+      scheduleEvent(taskEvent);
     }
+  };
 
-    if (!channel.isText()) return;
+  const _verifyInit = (client: Client | undefined): client is Client => {
+    if (client !== undefined) return true;
+    logger.error("Client wasn't initialized for scheduler.");
+    // TODO sentry
+    return false;
+  };
 
-    try {
-      const taskCheckInMessenger = new TaskCheckInMessenger(taskEvent, channel);
+  return {
+    init,
+    scheduleEvent,
+    scheduleEvents,
+  };
+})();
 
-      taskCheckInMessenger.start(); // async
-    } catch (error) {
-      logger.error('Something went wrong with check in...', error);
-    }
-  });
-};
-
-const scheduleTaskEvents = (taskEvents: TaskEvent[], client: Client) => {
-  for (const taskEvent of taskEvents) {
-    // TODO should do a check here to see if task event was supposed to be fired yesterday (sth messed up)
-
-    // TODO we're using closures here to access vars like the discord client and taskEvent.
-    //      How does this affect performance? At some point we should benchmark it and see if we should bind() or sth.
-    scheduleTaskEvent(taskEvent, client);
-  }
-
-  logger.info(
-    'Scheduled Jobs:',
-    Object.keys(nodeSchedule.scheduledJobs).map((id) => id),
-  );
-};
-
-const taskScheduler = {
-  scheduleTaskEvent,
-  scheduleTaskEvents,
-};
-
-export default taskScheduler;
+export default TaskScheduler;

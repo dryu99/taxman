@@ -11,7 +11,13 @@ const add = async (
 ): Promise<TaskEvent> => {
   const event = new TaskEventModel({ ...newEvent, schedule: scheduleID });
   const savedEvent = await event.save();
-  return savedEvent;
+  const populatedEvent = await savedEvent
+    .populate({
+      path: 'schedule',
+      populate: { path: 'guild' },
+    })
+    .execPopulate(); // TODO might not want to do this if we're calling this frequently
+  return populatedEvent;
 };
 
 const getTodayEvents = async (): Promise<TaskEvent[]> => {

@@ -1,6 +1,5 @@
 import { Message, MessageEmbed } from 'discord.js';
 import logger from '../../lib/logger';
-// import { Task, TaskFrequency } from '../../models/TaskModel';
 import { TIMEOUT_ERROR } from '../errors';
 import Messenger from './Messenger';
 import theme from '../theme';
@@ -11,7 +10,6 @@ import {
   getUserInputMessage,
   getUserInputReaction,
 } from '../utils';
-// import taskService from '../../services/task-service';
 import dayjs from 'dayjs';
 import { stripIndents } from 'common-tags';
 import { Guild } from '../../models/GuildModel';
@@ -20,6 +18,9 @@ import {
   TaskScheduleFrequency,
 } from '../../models/TaskScheduleModel';
 import taskScheduleService from '../../services/task-schedule-service';
+import { NewTaskEvent } from '../../models/TaskEventModel';
+import taskEventService from '../../services/task-event-service';
+import TaskScheduler from '../task-event-scheduler';
 
 enum MessengerState {
   END = 'end',
@@ -149,7 +150,7 @@ export default class TaskWriteMessenger extends Messenger {
 
   private async handleCollectDueDate(): Promise<MessengerState> {
     // Send embed prompt
-    const currDate = dayjs(Date.now()).add(1, 'day');
+    const currDate = dayjs().add(3, 'minutes'); // TODO change for prod
     const dateExample = currDate.format('MM/DD/YYYY h:mm a');
 
     // TODO can reword this. (When will you commit by?)
@@ -157,7 +158,8 @@ export default class TaskWriteMessenger extends Messenger {
       When do you want to complete this by?
       Format your response like this: \`MM/DD/YYYY H:MM AM or PM\`
 
-      Example: \`${dateExample}\`
+      Example: 
+      \`${dateExample}\`
     `);
 
     // Collect user input
@@ -348,8 +350,8 @@ export default class TaskWriteMessenger extends Messenger {
       );
     await this.channel.send(confirmEmbed);
 
-    // save task in db
-    await taskScheduleService.add(
+    // Save task schedule in db
+    const taskSchedule = await taskScheduleService.add(
       {
         userDiscordID: this.userDiscordID,
         channelID: this.channel.id,
@@ -364,6 +366,19 @@ export default class TaskWriteMessenger extends Messenger {
       },
       this.guild.id,
     );
+
+    // Save first task event in db
+    if (taskSchedule.frequency.type === TaskScheduleFrequency.ONCE) {
+      const newEvent: NewTaskEvent = { dueAt: taskSchedule.startAt };
+      const taskEvent = await taskEventService.add(newEvent, taskSchedule.id);
+
+      // Schedule the event if start date is <= today 11:59 pm
+      // TODO this becomes more complex with different frequency types lol
+      const todayEndDate = dayjs().endOf('date').toDate();
+      if (dayjs(taskSchedule.startAt).isBefore(todayEndDate)) {
+        TaskScheduler.scheduleEvent(taskEvent);
+      } // TODO add more cases for different frequency types
+    }
   }
 
   private async completeTaskEdit(): Promise<void> {
