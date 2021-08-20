@@ -82,7 +82,15 @@ export default class TaskWriteMessenger extends Messenger {
       taskSchedule === undefined
         ? MessengerState.GET_DESCRIPTION
         : MessengerState.GET_EDIT_OPTION; // initial state
-    this.collectData = taskSchedule ? { ...taskSchedule } : {};
+    this.collectData = taskSchedule
+      ? {
+          taskID: taskSchedule.id,
+          description: taskSchedule.description,
+          dueDate: taskSchedule.startAt, // TODO change this when we implement frequencies
+          partnerUserDiscordID: taskSchedule.partnerUserDiscordID,
+          stakes: taskSchedule.stakes,
+        }
+      : {};
   }
 
   public async start(): Promise<void> {
@@ -397,8 +405,10 @@ export default class TaskWriteMessenger extends Messenger {
     // Update task in db
     await taskScheduleService.update(taskID, {
       description,
-      startAt: dueDate,
+      startAt: dueDate, // TODO change this when we implement frequencies
     });
+
+    // TODO update existing task events in db + reschedule (if due date was changed)
   }
 
   private async cancelTaskWrite(): Promise<void> {
