@@ -70,7 +70,7 @@ export default class Bot {
   public async start(): Promise<void> {
     await this.client.login(process.env.DISCORD_BOT_TOKEN).catch(logger.error);
 
-    // schedule tasks on startup (in case server dies; node schedule jobs are kept in memory not separate processes)
+    // schedule tasks on startup (needed in case server dies; node schedule jobs are kept in memory not separate processes)
     this.scheduleTaskEvents();
 
     // TODO do sth like this for better interval handling https://stackoverflow.com/questions/52184291/async-await-with-setinterval

@@ -22,8 +22,8 @@ const TaskScheduler = (function () {
   const scheduleEvent = (taskEvent: TaskEvent) => {
     logger.info('Scheduling Task', taskEvent);
     nodeSchedule.scheduleJob(taskEvent.dueAt, async () => {
-      logger.info('Running scheduled task', taskEvent);
       if (!_verifyInit(_client)) return;
+      logger.info('Running scheduled task', taskEvent);
 
       let channel: Channel | undefined;
       try {

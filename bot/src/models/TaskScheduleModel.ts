@@ -4,15 +4,6 @@ import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
 import { Guild } from './GuildModel';
 
-// export enum TaskStatus {
-//   PENDING = 'pending', // task that has yet to be checked-in
-//   CHECKED = 'checked', // task that is currently being checked-in with user (yet to be determined as COMPLETED or FAILED)
-//   COMPLETED = 'completed', // task that user successfully completed
-//   FAILED = 'failed', // task that user failed to complete
-//   CANCELLED = 'cancelled', // task that has been cancelled by user
-//   FORCE_CANCELLED = 'force_cancelled', // task that has been cancelled by bot (i.e. error occurred)
-// }
-
 export enum TaskScheduleFrequency {
   ONCE,
   // TODO prob change below ones (refer here https://docs.microsoft.com/en-us/sql/relational-databases/system-tables/dbo-sysschedules-transact-sql?redirectedfrom=MSDN&view=sql-server-ver15)

@@ -41,6 +41,8 @@ class ListCommand extends Command {
   async run(msg: CommandoMessage, args: Record<ListCommandArgs, string>) {
     const { option } = args;
 
+    // TODO consider try catching this
+    //      will the bot error handler catch this? you should check
     // Fetch user tasks
     const taskEvents = await taskEventService.getUserEvents(
       msg.author.id,
