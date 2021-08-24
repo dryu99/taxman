@@ -409,7 +409,7 @@ export default class TaskWriteMessenger extends Messenger {
       startAt: dueDate, // TODO change this when we implement frequencies
     });
 
-    await taskEventService.updateManyByScheduleID(taskID, { dueAt: dueDate });
+    await taskEventService.updateAllByScheduleID(taskID, { dueAt: dueDate });
     // TODO reschedule task with task scheduler (if due date was changed)
 
     const confirmEmbed = new MessageEmbed()
