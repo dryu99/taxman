@@ -72,7 +72,7 @@ const update = async (
   return updatedEvent || undefined;
 };
 
-const updateAllByScheduleID = async (
+const updateManyByScheduleID = async (
   scheduleID: string,
   newProps: Partial<TaskEvent>,
 ): Promise<void> => {
@@ -95,7 +95,7 @@ const taskEventService = {
   getTodayEvents,
   getUserEvents,
   update,
-  updateAllByScheduleID,
+  updateManyByScheduleID,
   getByID,
 };
 
