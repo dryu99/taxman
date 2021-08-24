@@ -88,7 +88,7 @@ export default class Bot {
     // TODO could do some kind of check to see if nodeSchedule.scheudleJobs.length > 0 (it should be 0)
     // TODO determine if this doesn't work with different timezones
     // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
-    const todayTaskEvents = await taskEventService.getTodayEvents();
+    const todayTaskEvents = await taskEventService.getAllByToday();
     logger.info(
       "  Today's tasks:",
       todayTaskEvents.map((event) => ({

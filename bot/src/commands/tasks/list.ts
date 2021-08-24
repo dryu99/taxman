@@ -44,7 +44,7 @@ class ListCommand extends Command {
     // TODO consider try catching this
     //      will the bot error handler catch this? you should check
     // Fetch user tasks
-    const taskEvents = await taskEventService.getUserEvents(
+    const taskEvents = await taskEventService.getAllByUserID(
       msg.author.id,
       // TODO do sth like this once you get around to supporting more list options
       // option === 'upcoming' ? TaskEventStatus.PENDING : undefined,

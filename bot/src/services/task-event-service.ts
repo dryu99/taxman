@@ -22,7 +22,7 @@ const add = async (
   return populatedEvent;
 };
 
-const getTodayEvents = async (): Promise<TaskEvent[]> => {
+const getAllByToday = async (): Promise<TaskEvent[]> => {
   const todayEndDate = dayjs().endOf('date').toDate();
 
   // TODO might be able to make this query more efficient with indexes + more conditions ($gte)
@@ -37,7 +37,7 @@ const getTodayEvents = async (): Promise<TaskEvent[]> => {
   return todayEvents;
 };
 
-const getUserEvents = async (
+const getAllByUserID = async (
   userDiscordID: string,
   status?: TaskEventStatus,
 ): Promise<TaskEvent[]> => {
@@ -92,8 +92,8 @@ const getByID = async (eventID: string): Promise<TaskEvent | undefined> => {
 
 const taskEventService = {
   add,
-  getTodayEvents,
-  getUserEvents,
+  getAllByToday,
+  getAllByUserID,
   update,
   updateAllByScheduleID,
   getByID,
