@@ -1,9 +1,11 @@
 import dayjs from 'dayjs';
+import logger from '../lib/logger';
 import TaskEventModel, {
   NewTaskEvent,
   TaskEvent,
   TaskEventStatus,
 } from '../models/TaskEventModel';
+import { TaskSchedule } from '../models/TaskScheduleModel';
 
 const add = async (
   newEvent: NewTaskEvent,
@@ -62,7 +64,6 @@ const update = async (
   eventID: string,
   newProps: Partial<TaskEvent>,
 ): Promise<TaskEvent | undefined> => {
-  // TODO try catch ?
   const updatedEvent = await TaskEventModel.findByIdAndUpdate(
     eventID,
     newProps,
@@ -71,11 +72,31 @@ const update = async (
   return updatedEvent || undefined;
 };
 
+const updateAllByScheduleID = async (
+  scheduleID: string,
+  newProps: Partial<TaskEvent>,
+): Promise<void> => {
+  TaskEventModel.updateMany(
+    { schedule: scheduleID as unknown as TaskSchedule },
+    { $set: newProps },
+  );
+};
+
+const getByID = async (eventID: string): Promise<TaskEvent | undefined> => {
+  const event = await TaskEventModel.findById(eventID).populate({
+    path: 'schedule',
+    populate: { path: 'guild' },
+  });
+  return event || undefined;
+};
+
 const taskEventService = {
   add,
   getTodayEvents,
   getUserEvents,
   update,
+  updateAllByScheduleID,
+  getByID,
 };
 
 export default taskEventService;

@@ -56,7 +56,7 @@ export default class TaskWriteMessenger extends Messenger {
   private isCreatingNew: boolean; // specifies whether msger is creating or updating task
   private userDiscordID: string;
 
-  // schedule metadata
+  // schedule metadata we're collecting from user
   private collectData: {
     taskID?: string;
     description?: string;
@@ -64,6 +64,7 @@ export default class TaskWriteMessenger extends Messenger {
     partnerUserDiscordID?: string;
     stakes?: number;
   };
+  private originalTaskSchedule?: TaskSchedule; // used to compare prev and curr task meta in edit cmd
 
   // private task: Partial<Task>; // contains task metadata we write to db
 
@@ -82,15 +83,17 @@ export default class TaskWriteMessenger extends Messenger {
       taskSchedule === undefined
         ? MessengerState.GET_DESCRIPTION
         : MessengerState.GET_EDIT_OPTION; // initial state
+
     this.collectData = taskSchedule
       ? {
-          taskID: taskSchedule.id,
+          taskID: taskSchedule.id, // TODO rename to task schedule ID
           description: taskSchedule.description,
           dueDate: taskSchedule.startAt, // TODO change this when we implement frequencies
           partnerUserDiscordID: taskSchedule.partnerUserDiscordID,
           stakes: taskSchedule.stakes,
         }
       : {};
+    this.originalTaskSchedule = taskSchedule;
   }
 
   public async start(): Promise<void> {
@@ -351,13 +354,6 @@ export default class TaskWriteMessenger extends Messenger {
     if (!description || !dueDate || !partnerUserDiscordID)
       throw new Error(invalidDataErrorMsg(this.completeTaskAdd.name));
 
-    const confirmEmbed = new MessageEmbed()
-      .setColor(theme.colors.success)
-      .setDescription(
-        `Task created successfully! Due @ ${formatDate(dueDate)}.`,
-      );
-    await this.channel.send(confirmEmbed);
-
     // Save task schedule in db
     const taskSchedule = await taskScheduleService.add(
       {
@@ -390,25 +386,36 @@ export default class TaskWriteMessenger extends Messenger {
         TaskScheduler.scheduleEvent(taskEvent);
       } // TODO add more cases for different frequency types
     }
+
+    const confirmEmbed = new MessageEmbed()
+      .setColor(theme.colors.success)
+      .setDescription(
+        `Task created successfully! Due @ ${formatDate(dueDate)}.`,
+      );
+    await this.channel.send(confirmEmbed);
   }
 
   private async completeTaskEdit(): Promise<void> {
     const { description, dueDate, taskID } = this.collectData;
-    if (!description || !dueDate || !taskID)
+    if (!description || !dueDate || !taskID || !this.originalTaskSchedule)
       throw new Error(invalidDataErrorMsg(this.completeTaskEdit.name));
 
-    const confirmEmbed = new MessageEmbed()
-      .setColor(theme.colors.success)
-      .setDescription(`Task updated successfully!`);
-    await this.channel.send(confirmEmbed);
+    // TODO do a check here to see if any edits were actually made (compare prev to curr)
+    // if (this.originalTaskSchedule.description !== description)
 
-    // Update task in db
+    // Update task schedule + events in db
     await taskScheduleService.update(taskID, {
       description,
       startAt: dueDate, // TODO change this when we implement frequencies
     });
 
-    // TODO update existing task events in db + reschedule (if due date was changed)
+    await taskEventService.updateAllByScheduleID(taskID, { dueAt: dueDate });
+    // TODO reschedule task with task scheduler (if due date was changed)
+
+    const confirmEmbed = new MessageEmbed()
+      .setColor(theme.colors.success)
+      .setDescription(`Task updated successfully!`);
+    await this.channel.send(confirmEmbed);
   }
 
   private async cancelTaskWrite(): Promise<void> {

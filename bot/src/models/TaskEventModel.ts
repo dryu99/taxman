@@ -23,7 +23,7 @@ interface TaskEventMeta {
 export interface NewTaskEvent extends TaskEventMeta {}
 
 export interface TaskEvent extends TaskEventMeta, MongoModel {
-  schedule: TaskSchedule; // TODO consider adding | string (for unpopulated cases??)
+  schedule: TaskSchedule; // TODO consider creating another interface for populated models
   status: TaskEventStatus;
 }
 
