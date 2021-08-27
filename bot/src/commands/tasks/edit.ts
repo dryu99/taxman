@@ -66,14 +66,14 @@ class EditCommand extends Command {
         `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
       );
     }
-
     const { gracePeriodEndOffset } = taskEvent.schedule.guild.settings;
-    if (hasGracePeriodEnded(taskEvent))
+    if (hasGracePeriodEnded(taskEvent)) {
       return msg.reply(
         `Sorry! Editing becomes disabled ${toMinutes(
           gracePeriodEndOffset,
         )} minutes before the deadline.`,
       );
+    }
 
     // Fetch + validate channel
     const channel = await this.client.channels.fetch(

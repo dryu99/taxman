@@ -41,18 +41,11 @@ const getAllByToday = async (): Promise<TaskEvent[]> => {
 
 const getAllByUserID = async (
   userDiscordID: string,
-  status?: TaskEventStatus,
+  status: TaskEventStatus,
 ): Promise<TaskEvent[]> => {
-  const filter: Partial<TaskEvent> = {};
-
-  // if no status given, don't filter
-  if (status) {
-    filter.status = status;
-  }
-
-  const events = await TaskEventModel.find({
+  return TaskEventModel.find({
     userDiscordID,
-    ...filter,
+    status,
   })
     .sort({
       dueAt: status === TaskEventStatus.PENDING ? 1 : -1,
@@ -62,24 +55,25 @@ const getAllByUserID = async (
       path: 'schedule',
       populate: { path: 'guild' },
     });
-  return events;
 };
-
-// const getAllByScheduleID
 
 const update = async (
   eventID: string,
   newProps: Partial<TaskEvent>,
 ): Promise<TaskEvent | undefined> => {
-  const updatedEvent = await TaskEventModel.findByIdAndUpdate(
-    eventID,
-    newProps,
-    { new: true },
-  ).populate({
-    path: 'schedule',
-    populate: { path: 'guild' },
-  });
-  return updatedEvent || undefined;
+  try {
+    const updatedEvent = await TaskEventModel.findByIdAndUpdate(
+      eventID,
+      newProps,
+      { new: true },
+    ).populate({
+      path: 'schedule',
+      populate: { path: 'guild' },
+    });
+    return updatedEvent || undefined;
+  } catch (e) {
+    return undefined;
+  }
 };
 
 // TODO address unknown type
@@ -100,12 +94,17 @@ const updateAllByScheduleID = async (
   });
 };
 
+// try/catch needed when user provides id that can't be parsed into mongo ObjectID
 const getByID = async (eventID: string): Promise<TaskEvent | undefined> => {
-  const event = await TaskEventModel.findById(eventID).populate({
-    path: 'schedule',
-    populate: { path: 'guild' },
-  });
-  return event || undefined;
+  try {
+    const event = await TaskEventModel.findById(eventID).populate({
+      path: 'schedule',
+      populate: { path: 'guild' },
+    });
+    return event || undefined;
+  } catch (e) {
+    return undefined;
+  }
 };
 
 const taskEventService = {

@@ -17,13 +17,16 @@ const update = async (
   scheduleID: string,
   newProps: Partial<TaskSchedule>,
 ): Promise<TaskSchedule | undefined> => {
-  // TODO try catch ?
-  const updatedSchedule = await TaskScheduleModel.findByIdAndUpdate(
-    scheduleID,
-    newProps,
-    { new: true },
-  ).populate('guild');
-  return updatedSchedule || undefined;
+  try {
+    const updatedSchedule = await TaskScheduleModel.findByIdAndUpdate(
+      scheduleID,
+      newProps,
+      { new: true },
+    ).populate('guild');
+    return updatedSchedule || undefined;
+  } catch (e) {
+    return undefined;
+  }
 };
 
 const taskScheduleService = {

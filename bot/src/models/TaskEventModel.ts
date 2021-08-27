@@ -5,6 +5,7 @@ import { MongoModel } from '../types';
 import { Guild } from './GuildModel';
 import { TaskSchedule, taskScheduleSchema } from './TaskScheduleModel';
 
+// TODO just add string vals
 export enum TaskEventStatus {
   PENDING, // task that has yet to be checked-in
   // CHECKED, // task that is currently being checked-in with user (yet to be determined as COMPLETED or FAILED)
