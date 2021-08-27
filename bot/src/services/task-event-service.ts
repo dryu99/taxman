@@ -7,6 +7,8 @@ import TaskEventModel, {
 } from '../models/TaskEventModel';
 import { TaskSchedule } from '../models/TaskScheduleModel';
 
+// TODO address populates
+
 const add = async (
   newEvent: NewTaskEvent,
   scheduleID: string,
@@ -56,9 +58,14 @@ const getAllByUserID = async (
       dueAt: status === TaskEventStatus.PENDING ? 1 : -1,
       createdAt: -1,
     })
-    .populate('schedule');
+    .populate({
+      path: 'schedule',
+      populate: { path: 'guild' },
+    });
   return events;
 };
+
+// const getAllByScheduleID
 
 const update = async (
   eventID: string,
@@ -68,18 +75,29 @@ const update = async (
     eventID,
     newProps,
     { new: true },
-  );
+  ).populate({
+    path: 'schedule',
+    populate: { path: 'guild' },
+  });
   return updatedEvent || undefined;
 };
 
+// TODO address unknown type
 const updateAllByScheduleID = async (
   scheduleID: string,
   newProps: Partial<TaskEvent>,
-): Promise<void> => {
-  TaskEventModel.updateMany(
+): Promise<TaskEvent[]> => {
+  await TaskEventModel.updateMany(
     { schedule: scheduleID as unknown as TaskSchedule },
     { $set: newProps },
   );
+
+  return TaskEventModel.find({
+    schedule: scheduleID as unknown as TaskSchedule,
+  }).populate({
+    path: 'schedule',
+    populate: { path: 'guild' },
+  });
 };
 
 const getByID = async (eventID: string): Promise<TaskEvent | undefined> => {

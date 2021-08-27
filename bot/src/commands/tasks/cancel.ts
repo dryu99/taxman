@@ -38,41 +38,35 @@ class CancelCommand extends Command {
 
   // TODO handle input validation
   async run(msg: CommandoMessage, args: Record<CancelCommandArgs, string>) {
-    const { taskID } = args;
-
-    try {
-      // TODO can fetch both at same time
-      const task = await taskService.getByID(taskID);
-      const guild = await guildService.getByDiscordID(msg.guild.id);
-
-      if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
-      if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
-
-      if (task.userDiscordID !== msg.author.id)
-        return msg.reply(`You can't cancel other people's tasks!`);
-
-      if (task.status !== TaskStatus.PENDING)
-        return msg.reply(
-          `You can only cancel pending tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
-        );
-
-      // Check grace period
-      if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
-        return msg.reply("Bitch it's too late."); // TODO change text lol
-
-      // Update task status
-      await taskService.update(taskID, { status: TaskStatus.CANCELLED });
-
-      // TODO should prompt user to confirm action
-      // TODO only allow user to call this command if they're still in grace period
-      // TODO should only be able to cancel PENDING tasks (anything else is nono)
-      return msg.reply(
-        'Task cancelled successfully! You will not be prompted for a check-in.',
-      );
-    } catch (e) {
-      logger.error(e);
-      return msg.reply(INTERNAL_ERROR);
-    }
+    // const { taskID } = args;
+    // try {
+    //   // TODO can fetch both at same time
+    //   const task = await taskService.getByID(taskID);
+    //   const guild = await guildService.getByDiscordID(msg.guild.id);
+    //   if (!task) return msg.reply(INVALID_TASK_ID_ERROR);
+    //   if (!guild) return msg.reply(MISSING_SETTINGS_ERROR);
+    //   if (task.userDiscordID !== msg.author.id)
+    //     return msg.reply(`You can't cancel other people's tasks!`);
+    //   if (task.status !== TaskStatus.PENDING)
+    //     return msg.reply(
+    //       `You can only cancel pending tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
+    //     );
+    //   // Check grace period
+    //   if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
+    //     return msg.reply("Bitch it's too late."); // TODO change text lol
+    //   // Update task status
+    //   await taskService.update(taskID, { status: TaskStatus.CANCELLED });
+    //   // TODO should prompt user to confirm action
+    //   // TODO only allow user to call this command if they're still in grace period
+    //   // TODO should only be able to cancel PENDING tasks (anything else is nono)
+    //   return msg.reply(
+    //     'Task cancelled successfully! You will not be prompted for a check-in.',
+    //   );
+    // } catch (e) {
+    //   logger.error(e);
+    //   return msg.reply(INTERNAL_ERROR);
+    // }
+    return null;
   }
 }
 

@@ -22,7 +22,7 @@ const update = async (
     scheduleID,
     newProps,
     { new: true },
-  );
+  ).populate('guild');
   return updatedSchedule || undefined;
 };
 

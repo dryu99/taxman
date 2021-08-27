@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
+import { TaskEvent } from '../models/TaskEventModel';
 import { Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import theme from './theme';
@@ -14,11 +15,9 @@ export const formatMention = (id: string): string => {
   return `<@${id}>`;
 };
 
-export const hasGracePeriodEnded = (
-  task: Task,
-  gracePeriodEndOffset: number,
-): boolean => {
-  const gracePeriodEnd = task.dueAt.getTime() - gracePeriodEndOffset;
+export const hasGracePeriodEnded = (taskEvent: TaskEvent): boolean => {
+  const { gracePeriodEndOffset } = taskEvent.schedule.guild.settings;
+  const gracePeriodEnd = taskEvent.dueAt.getTime() - gracePeriodEndOffset;
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
 

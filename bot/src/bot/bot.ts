@@ -99,7 +99,7 @@ export default class Bot {
       })),
     );
 
-    TaskScheduler.scheduleEvents(todayTaskEvents);
+    TaskScheduler.scheduleMany(todayTaskEvents);
 
     // const dueTasks = await taskService.getDueTasks(new Date());
     // logger.info('  Due tasks:', dueTasks);

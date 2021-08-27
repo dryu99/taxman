@@ -383,7 +383,7 @@ export default class TaskWriteMessenger extends Messenger {
       // TODO this becomes more complex with different frequency types lol
       const todayEndDate = dayjs().endOf('date').toDate();
       if (dayjs(taskSchedule.startAt).isBefore(todayEndDate)) {
-        TaskScheduler.scheduleEvent(taskEvent);
+        TaskScheduler.scheduleOne(taskEvent);
       } // TODO add more cases for different frequency types
     }
 
@@ -409,8 +409,14 @@ export default class TaskWriteMessenger extends Messenger {
       startAt: dueDate, // TODO change this when we implement frequencies
     });
 
-    await taskEventService.updateAllByScheduleID(taskID, { dueAt: dueDate });
-    // TODO reschedule task with task scheduler (if due date was changed)
+    // TODO dont have to update all until frequency is addressed
+    const taskEvents = await taskEventService.updateAllByScheduleID(taskID, {
+      dueAt: dueDate,
+    });
+    const todayEndDate = dayjs().endOf('date').toDate();
+    if (dayjs(dueDate).isBefore(todayEndDate)) {
+      TaskScheduler.rescheduleMany(taskEvents);
+    } // TODO add more cases for different frequency types
 
     const confirmEmbed = new MessageEmbed()
       .setColor(theme.colors.success)

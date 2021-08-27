@@ -1,5 +1,5 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
-import { hasGracePeriodEnded } from '../../bot/utils';
+import { hasGracePeriodEnded, toMinutes } from '../../bot/utils';
 import guildService from '../../services/guild-service';
 import {
   INTERNAL_ERROR,
@@ -66,8 +66,14 @@ class EditCommand extends Command {
         `You can only edit incomplete tasks! Use the \`$${ListCommand.DEFAULT_CMD_NAME}\` command to see them.`,
       );
     }
-    // if (hasGracePeriodEnded(task, guild.settings.gracePeriodEndOffset))
-    //   return msg.reply("Bitch it's too late."); // TODO change text lol
+
+    const { gracePeriodEndOffset } = taskEvent.schedule.guild.settings;
+    if (hasGracePeriodEnded(taskEvent))
+      return msg.reply(
+        `Sorry! Editing becomes disabled ${toMinutes(
+          gracePeriodEndOffset,
+        )} minutes before the deadline.`,
+      );
 
     // Fetch + validate channel
     const channel = await this.client.channels.fetch(

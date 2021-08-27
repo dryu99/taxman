@@ -5,7 +5,6 @@ import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
 import { TaskEvent, TaskEventStatus } from '../models/TaskEventModel';
 import taskEventService from '../services/task-event-service';
 import logger from '../lib/logger';
-import { formatDate } from './utils';
 
 const TaskScheduler = (function () {
   let _client: Client | undefined;
@@ -19,12 +18,13 @@ const TaskScheduler = (function () {
   // TODO we're using closures here to access vars like the discord client and taskEvent.
   //      How does this affect performance? At some point we should benchmark it and see if we should bind() or sth.
   //      We coudl alternatively make a DB call for each scheduled task instead to get meta
-  const scheduleEvent = (taskEvent: TaskEvent) => {
+  const scheduleOne = (taskEvent: TaskEvent) => {
     logger.info('Scheduling Task', taskEvent);
-    nodeSchedule.scheduleJob(taskEvent.dueAt, async () => {
+    nodeSchedule.scheduleJob(taskEvent.id, taskEvent.dueAt, async () => {
       if (!_verifyInit(_client)) return;
       logger.info('Running scheduled task', taskEvent);
 
+      // TODO possibly better to fetch schedule here
       let channel: Channel | undefined;
       try {
         channel = await _client.channels.fetch(taskEvent.schedule.channelID);
@@ -52,9 +52,16 @@ const TaskScheduler = (function () {
     });
   };
 
-  const scheduleEvents = (taskEvents: TaskEvent[]) => {
+  const scheduleMany = (taskEvents: TaskEvent[]) => {
     for (const taskEvent of taskEvents) {
-      scheduleEvent(taskEvent);
+      scheduleOne(taskEvent);
+    }
+  };
+
+  const rescheduleMany = (taskEvents: TaskEvent[]) => {
+    for (const taskEvent of taskEvents) {
+      nodeSchedule.cancelJob(taskEvent.id); // we could also use rescheduleJob, but we would have to address dirty taskEvent data
+      scheduleOne(taskEvent);
     }
   };
 
@@ -67,8 +74,9 @@ const TaskScheduler = (function () {
 
   return {
     init,
-    scheduleEvent,
-    scheduleEvents,
+    scheduleOne,
+    scheduleMany,
+    rescheduleMany,
   };
 })();
 
