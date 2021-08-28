@@ -1,4 +1,4 @@
-import MemberModel, { NewMember, Member } from '../models/MemberModel';
+import MemberModel, { NewMember, Member } from '../models/member-model';
 
 const contains = async (
   discordUserID: string,

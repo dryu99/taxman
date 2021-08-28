@@ -2,8 +2,8 @@ import { User } from 'discord.js';
 import { Document, Schema, model } from 'mongoose';
 import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
-import { Guild } from './GuildModel';
-import { TaskSchedule, taskScheduleSchema } from './TaskScheduleModel';
+import { Guild } from './guild-model';
+import { TaskSchedule, taskScheduleSchema } from './task-schedule-model';
 
 // TODO just add string vals
 export enum TaskEventStatus {

@@ -9,11 +9,11 @@ import theme from '../theme';
 import { INTERNAL_ERROR, TimeoutError } from '../errors';
 import { DiscordTextChannel } from '../types';
 import logger from '../../lib/logger';
-import Messenger from './Messenger';
+import Messenger from './messenger';
 import { stripIndents } from 'common-tags';
-import { Guild } from '../../models/GuildModel';
-import { TaskEvent, TaskEventStatus } from '../../models/TaskEventModel';
-import { TaskSchedule } from '../../models/TaskScheduleModel';
+import { Guild } from '../../models/guild-model';
+import { TaskEvent, TaskEventStatus } from '../../models/task-event-model';
+import { TaskSchedule } from '../../models/task-schedule-model';
 import taskScheduleService from '../../services/task-schedule-service';
 import taskEventService from '../../services/task-event-service';
 

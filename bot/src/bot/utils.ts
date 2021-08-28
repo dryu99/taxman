@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
-import { TaskEvent } from '../models/TaskEventModel';
+import { TaskEvent } from '../models/task-event-model';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import theme from './theme';
 import { DiscordTextChannel } from './types';

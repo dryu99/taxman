@@ -3,7 +3,7 @@ import ListCommand from './list';
 import { INVALID_TASK_ID_ERROR } from '../../bot/errors';
 import { hasGracePeriodEnded, toMinutes } from '../../bot/utils';
 import taskEventService from '../../services/task-event-service';
-import { TaskEventStatus } from '../../models/TaskEventModel';
+import { TaskEventStatus } from '../../models/task-event-model';
 import taskScheduleService from '../../services/task-schedule-service';
 
 enum CancelCommandArgs {

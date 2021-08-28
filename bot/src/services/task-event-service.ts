@@ -4,8 +4,8 @@ import TaskEventModel, {
   NewTaskEvent,
   TaskEvent,
   TaskEventStatus,
-} from '../models/TaskEventModel';
-import { TaskSchedule } from '../models/TaskScheduleModel';
+} from '../models/task-event-model';
+import { TaskSchedule } from '../models/task-schedule-model';
 
 // TODO address populates
 

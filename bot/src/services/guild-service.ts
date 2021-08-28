@@ -1,5 +1,5 @@
 import logger from '../lib/logger';
-import GuildModel, { Guild } from '../models/GuildModel';
+import GuildModel, { Guild } from '../models/guild-model';
 
 // TODO if user kicks bot, what happens to settings in db?
 //      we should prob delete.

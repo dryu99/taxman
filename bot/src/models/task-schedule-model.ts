@@ -2,7 +2,7 @@ import { User } from 'discord.js';
 import { Document, Schema, model } from 'mongoose';
 import { toMilliseconds } from '../bot/utils';
 import { MongoModel } from '../types';
-import { Guild } from './GuildModel';
+import { Guild } from './guild-model';
 
 export enum TaskScheduleFrequency {
   ONCE,

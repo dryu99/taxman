@@ -1,7 +1,7 @@
 import TaskScheduleModel, {
   NewTaskSchedule,
   TaskSchedule,
-} from '../models/TaskScheduleModel';
+} from '../models/task-schedule-model';
 
 // TODO have to auth users for write operations (ow other users could mess with your shit)
 const add = async (

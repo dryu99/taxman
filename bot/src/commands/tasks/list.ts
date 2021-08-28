@@ -4,7 +4,7 @@ import theme from '../../bot/theme';
 import { formatDate, formatMention } from '../../bot/utils';
 import { stripIndent } from 'common-tags';
 import taskEventService from '../../services/task-event-service';
-import { TaskEventStatus } from '../../models/TaskEventModel';
+import { TaskEventStatus } from '../../models/task-event-model';
 import NewCommand from './new';
 
 enum ListCommandArgs {

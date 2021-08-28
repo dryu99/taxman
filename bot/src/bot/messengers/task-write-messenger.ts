@@ -1,7 +1,7 @@
 import { Message, MessageEmbed } from 'discord.js';
 import logger from '../../lib/logger';
 import { TIMEOUT_ERROR } from '../errors';
-import Messenger from './Messenger';
+import Messenger from './messenger';
 import theme from '../theme';
 import { DiscordTextChannel } from '../types';
 import {
@@ -12,13 +12,13 @@ import {
 } from '../utils';
 import dayjs from 'dayjs';
 import { stripIndents } from 'common-tags';
-import { Guild } from '../../models/GuildModel';
+import { Guild } from '../../models/guild-model';
 import {
   TaskSchedule,
   TaskScheduleFrequency,
-} from '../../models/TaskScheduleModel';
+} from '../../models/task-schedule-model';
 import taskScheduleService from '../../services/task-schedule-service';
-import { NewTaskEvent } from '../../models/TaskEventModel';
+import { NewTaskEvent } from '../../models/task-event-model';
 import taskEventService from '../../services/task-event-service';
 import TaskScheduler from '../task-event-scheduler';
 

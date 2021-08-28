@@ -1,8 +1,8 @@
 import { Channel } from 'discord.js';
 import { Client } from 'discord.js-commando';
 import nodeSchedule from 'node-schedule';
-import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
-import { TaskEvent, TaskEventStatus } from '../models/TaskEventModel';
+import TaskCheckInMessenger from './messengers/task-checkin-messenger';
+import { TaskEvent, TaskEventStatus } from '../models/task-event-model';
 import taskEventService from '../services/task-event-service';
 import logger from '../lib/logger';
 

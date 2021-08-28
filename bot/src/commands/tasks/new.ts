@@ -1,6 +1,6 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { INTERNAL_ERROR, MISSING_SETTINGS_ERROR } from '../../bot/errors';
-import TaskWriteMessenger from '../../bot/messengers/TaskAddMessenger';
+import TaskWriteMessenger from '../../bot/messengers/task-write-messenger';
 import logger from '../../lib/logger';
 import guildService from '../../services/guild-service';
 

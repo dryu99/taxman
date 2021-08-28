@@ -10,9 +10,9 @@ import {
 import ListCommand from './list';
 // import TaskEditMessenger from '../../bot/messengers/TaskEditMessenger';
 import logger from '../../lib/logger';
-import TaskWriteMessenger from '../../bot/messengers/TaskAddMessenger';
+import TaskWriteMessenger from '../../bot/messengers/task-write-messenger';
 import taskEventService from '../../services/task-event-service';
-import { TaskEventStatus } from '../../models/TaskEventModel';
+import { TaskEventStatus } from '../../models/task-event-model';
 
 enum EditCommandArgs {
   TASK_EVENT_ID = 'taskEventID',
