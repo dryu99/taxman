@@ -23,23 +23,23 @@ import taskEventService from '../../services/task-event-service';
 import TaskScheduler from '../task-event-scheduler';
 
 enum MessengerState {
-  END = 'end',
+  END,
 
   // collection states
-  GET_DESCRIPTION = 'get_description',
-  GET_DUE_DATE = 'get_deadline',
-  GET_STAKES = 'get_stakes',
-  GET_PARTNER = 'get_partner',
-  GET_EDIT_OPTION = 'get_edit_option',
+  GET_DESCRIPTION,
+  GET_DUE_DATE,
+  GET_STAKES,
+  GET_PARTNER,
+  GET_EDIT_OPTION,
 
   // error states
-  TIMEOUT = 'timeout',
-  CANCEL = 'cancel',
+  TIMEOUT,
+  CANCEL,
 }
 
 enum MessengerWorkflow {
-  CREATE = 'create', // on new task creation
-  EDIT = 'edit', // when user sees edit option embed
+  CREATE, // on new task creation
+  EDIT, // when user sees edit option embed
 }
 
 // TODO add reminder param

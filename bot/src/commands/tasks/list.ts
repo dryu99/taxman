@@ -2,10 +2,10 @@ import { MessageEmbed } from 'discord.js';
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import theme from '../../bot/theme';
 import { formatDate, formatMention } from '../../bot/utils';
-import ScheduleCommand from './schedule';
 import { stripIndent } from 'common-tags';
 import taskEventService from '../../services/task-event-service';
 import { TaskEventStatus } from '../../models/TaskEventModel';
+import NewCommand from './new';
 
 enum ListCommandArgs {
   OPTION = 'option',
@@ -83,7 +83,7 @@ class ListCommand extends Command {
       embed.addFields(fields);
     } else {
       embed.setDescription(
-        `You have no upcoming tasks! Use the \`$${ScheduleCommand.DEFAULT_CMD_NAME}\` command to schedule a new task`,
+        `You have no upcoming tasks! Use the \`$${NewCommand.DEFAULT_CMD_NAME}\` command to schedule a new task`,
       );
     }
 

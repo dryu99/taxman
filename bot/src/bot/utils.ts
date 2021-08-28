@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
 import { TaskEvent } from '../models/TaskEventModel';
-import { Task } from '../models/TaskModel';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
 import theme from './theme';
 import { DiscordTextChannel } from './types';
@@ -49,7 +48,11 @@ export const _p = async <T>(
 };
 
 export const createTaskEmbed = (
-  task: Pick<Task, 'description' | 'dueAt' | 'partnerUserDiscordID'>, // TODO add stakes once stripe integration is done
+  taskData: {
+    description: string;
+    dueAt: Date;
+    partnerUserDiscordID: string;
+  },
   title?: string,
   description?: string,
 ): MessageEmbed => {
@@ -68,15 +71,15 @@ export const createTaskEmbed = (
       // },
       {
         name: 'Task',
-        value: task.description,
+        value: taskData.description,
       },
       {
         name: 'Deadline',
-        value: formatDate(task.dueAt),
+        value: formatDate(taskData.dueAt),
       },
       {
         name: 'Accountability Partner',
-        value: formatMention(task.partnerUserDiscordID),
+        value: formatMention(taskData.partnerUserDiscordID),
       },
       // {
       //   name: 'Money at stake',
