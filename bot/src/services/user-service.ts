@@ -1,4 +1,4 @@
-import UserModel, { NewUser, User } from '../models/UserModel';
+import UserModel, { NewUser, User } from '../models/user-model';
 
 const contains = async (discordID: string): Promise<boolean> => {
   const user = await UserModel.findOne({ discordID });

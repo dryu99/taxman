@@ -1,6 +1,6 @@
 import { Command, CommandoClient, CommandoMessage } from 'discord.js-commando';
 import { INTERNAL_ERROR, MISSING_SETTINGS_ERROR } from '../../bot/errors';
-import TaskWriteMessenger from '../../bot/messengers/TaskAddMessenger';
+import TaskWriteMessenger from '../../bot/messengers/task-write-messenger';
 import logger from '../../lib/logger';
 import guildService from '../../services/guild-service';
 
@@ -19,7 +19,10 @@ class NewCommand extends Command {
 
   async run(msg: CommandoMessage) {
     const channel = await this.client.channels.fetch(msg.channel.id);
-    if (!channel.isText()) return msg.reply('oops');
+    if (!channel.isText())
+      return msg.reply(
+        'Bot expected a Text channel but received something else.',
+      );
 
     // TODO add users/members like in schedule command
 

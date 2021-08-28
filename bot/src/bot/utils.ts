@@ -1,16 +1,7 @@
 import dayjs from 'dayjs';
-import {
-  Channel,
-  Message,
-  MessageEmbed,
-  MessageReaction,
-  User,
-} from 'discord.js';
-import logger from '../lib/logger';
-import { Guild } from '../models/GuildModel';
-import { NewTask, Task } from '../models/TaskModel';
+import { Message, MessageEmbed, MessageReaction, User } from 'discord.js';
+import { TaskEvent } from '../models/task-event-model';
 import { DEFAULT_INPUT_AWAIT_TIME_MIN } from './constants';
-import { TimeoutError } from './errors';
 import theme from './theme';
 import { DiscordTextChannel } from './types';
 
@@ -23,11 +14,9 @@ export const formatMention = (id: string): string => {
   return `<@${id}>`;
 };
 
-export const hasGracePeriodEnded = (
-  task: Task,
-  gracePeriodEndOffset: number,
-): boolean => {
-  const gracePeriodEnd = task.dueAt.getTime() - gracePeriodEndOffset;
+export const hasGracePeriodEnded = (taskEvent: TaskEvent): boolean => {
+  const { gracePeriodEndOffset } = taskEvent.schedule.guild.settings;
+  const gracePeriodEnd = taskEvent.dueAt.getTime() - gracePeriodEndOffset;
   return Date.now() >= gracePeriodEnd; // TODO will timezones affect this...
 };
 
@@ -46,8 +35,24 @@ export const toMilliseconds = (
   return timeType === 'hours' ? timeVal * 1000 * 60 * 60 : timeVal * 1000 * 60;
 };
 
+export const _p = async <T>(
+  promise: Promise<T>,
+): Promise<[T | null, Record<string, string> | null]> => {
+  try {
+    const result = await promise;
+    return [result, null];
+  } catch (error) {
+    console.error('CUSTOM ERROR HANDLER', error);
+    return [null, error];
+  }
+};
+
 export const createTaskEmbed = (
-  task: Pick<Task, 'description' | 'dueAt' | 'partnerUserDiscordID'>, // TODO add stakes once stripe integration is done
+  taskData: {
+    description: string;
+    dueAt: Date;
+    partnerUserDiscordID: string;
+  },
   title?: string,
   description?: string,
 ): MessageEmbed => {
@@ -66,15 +71,15 @@ export const createTaskEmbed = (
       // },
       {
         name: 'Task',
-        value: task.description,
+        value: taskData.description,
       },
       {
         name: 'Deadline',
-        value: formatDate(task.dueAt),
+        value: formatDate(taskData.dueAt),
       },
       {
         name: 'Accountability Partner',
-        value: formatMention(task.partnerUserDiscordID),
+        value: formatMention(taskData.partnerUserDiscordID),
       },
       // {
       //   name: 'Money at stake',

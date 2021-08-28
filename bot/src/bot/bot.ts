@@ -1,13 +1,10 @@
-import { Channel } from 'discord.js';
 import { CommandoClient } from 'discord.js-commando';
 import path from 'path';
 import logger from '../lib/logger';
-import { TaskStatus } from '../models/TaskModel';
 import guildService from '../services/guild-service';
-import taskService from '../services/task-service';
-import { MISSING_SETTINGS_ERROR } from './errors';
-import TaskCheckInMessenger from './messengers/TaskCheckInMessenger';
-import { formatMention } from './utils';
+import taskEventService from '../services/task-event-service';
+import { formatDate, toMilliseconds } from './utils';
+import TaskScheduler from './task-event-scheduler';
 
 export default class Bot {
   static NAME: string = 'TaxBot';
@@ -60,73 +57,93 @@ export default class Bot {
       //             actually we should do some kind of flagging lmao, this would be bad for recuring tasks. need to stop them from recurring somehow
       //      members: can prob just leave? or maybe reset cancel tokens or sth
     });
+
+    this.client.on('error', (error) => {
+      logger.error('BLAH', error);
+    });
+
+    // Other configuration
+    TaskScheduler.init(this.client);
   }
 
   // TODO might need to handle case where this fires before client is ready
-  public async start(): Promise<string | void> {
+  public async start(): Promise<void> {
+    await this.client.login(process.env.DISCORD_BOT_TOKEN).catch(logger.error);
+
+    // schedule tasks on startup (needed in case server dies; node schedule jobs are kept in memory not separate processes)
+    this.scheduleTaskEvents();
+
     // TODO do sth like this for better interval handling https://stackoverflow.com/questions/52184291/async-await-with-setinterval
     //      also should be like 10 sec or sth lol
     //      basically we want to make it so the interval should only continue if the current operation has completed
+    // TODO should schedule this to occur every midnight
     this.client.setInterval(() => {
-      this.checkTasks();
-    }, 5 * 1000);
-
-    return this.client
-      .login(process.env.DISCORD_BOT_TOKEN)
-      .catch(console.error);
+      this.scheduleTaskEvents();
+    }, toMilliseconds(15, 'minutes'));
   }
 
-  private async checkTasks(): Promise<void> {
-    logger.info(
-      `[BOT] Checking tasks (${new Date(Date.now()).toLocaleTimeString()})`,
-    );
+  private async scheduleTaskEvents(): Promise<void> {
+    logger.info(`[BOT] Scheduling tasks (${new Date().toLocaleTimeString()})`);
 
-    // Check for due tasks
+    // TODO could do some kind of check to see if nodeSchedule.scheudleJobs.length > 0 (it should be 0)
     // TODO determine if this doesn't work with different timezones
     // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
-    const dueTasks = await taskService.getDueTasks(new Date());
-    logger.info('  Due tasks:', dueTasks);
+    const todayTaskEvents = await taskEventService.getAllByToday();
+    logger.info(
+      "  Today's tasks:",
+      todayTaskEvents.map((event) => ({
+        id: event.id,
+        description: event.schedule.description,
+        dueAt: formatDate(event.dueAt),
+        userDiscordID: event.schedule.userDiscordID,
+      })),
+    );
 
-    for (const dueTask of dueTasks) {
-      let channel: Channel | undefined;
-      try {
-        channel = await this.client.channels.fetch(dueTask.channelID);
-      } catch (e) {
-        // possible errors:
-        //  - channel doesn't exist anymore
-        //  - bot was kicked from guild
-        logger.error(e);
-        await taskService.update(dueTask.id, {
-          status: TaskStatus.FORCE_CANCELLED,
-        });
+    TaskScheduler.scheduleMany(todayTaskEvents);
 
-        // TODO should consider msging user too
-        //      if channel doesn't exist anymore -> force_cancel channel tasks + DM users with tasks scheduled for that channel and let them know that all their scheduled tasks for that channel were cancelled
-        //      if guild doesn't exist anymore -> force_cancel guild tasks + DM users with tasks scheduled in that guild same thing as above ^ (actually we can do this in the guildDelete event handler)
-        // TODO sentry
-        continue;
-      }
+    // const dueTasks = await taskService.getDueTasks(new Date());
+    // logger.info('  Due tasks:', dueTasks);
 
-      if (!channel.isText()) continue; // TODO sentry
+    // for (const dueTask of dueTasks) {
+    //   let channel: Channel | undefined;
+    //   try {
+    //     channel = await this.client.channels.fetch(dueTask.channelID);
+    //   } catch (e) {
+    //     // possible errors:
+    //     //  - channel doesn't exist anymore
+    //     //  - bot was kicked from guild
+    //     logger.error(e);
+    //     await taskService.update(dueTask.id, {
+    //       status: TaskStatus.FORCE_CANCELLED,
+    //     });
 
-      // TODO shouldn't have to fetch here, should get populated from dueTask
-      const guild = await guildService.getByID(dueTask.guildID);
-      if (!guild) {
-        logger.error(MISSING_SETTINGS_ERROR, dueTask);
-        await channel.send(MISSING_SETTINGS_ERROR);
-        continue;
-        // TODO sentry
-      }
+    //     // TODO should consider msging user too
+    //     //      if channel doesn't exist anymore -> force_cancel channel tasks + DM users with tasks scheduled for that channel and let them know that all their scheduled tasks for that channel were cancelled
+    //     //      if guild doesn't exist anymore -> force_cancel guild tasks + DM users with tasks scheduled in that guild same thing as above ^ (actually we can do this in the guildDelete event handler)
+    //     // TODO sentry
+    //     continue;
+    //   }
 
-      const taskCheckInMessenger = new TaskCheckInMessenger(
-        dueTask,
-        channel,
-        guild,
-      );
+    //   if (!channel.isText()) continue; // TODO sentry
 
-      // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)
-      taskCheckInMessenger.start(); // async
-    }
+    //   // TODO shouldn't have to fetch here, should get populated from dueTask
+    //   const guild = await guildService.getByID(dueTask.guildID);
+    //   if (!guild) {
+    //     logger.error(MISSING_SETTINGS_ERROR, dueTask);
+    //     await channel.send(MISSING_SETTINGS_ERROR);
+    //     continue;
+    //     // TODO sentry
+    //   }
+
+    //   const taskCheckInMessenger = new TaskCheckInMessenger(
+    //     dueTask,
+    //     channel,
+    //     guild,
+    //   );
+
+    //   // TODO test how this works with multiple task check-ins in the same channel (should expect/hope each msger works independently)
+    //   taskCheckInMessenger.start(); // async
+    // }
 
     // TODO consider how to handle users editing reminders
     // // Check for tasks that need reminding
@@ -152,7 +169,7 @@ export default class Bot {
     //   //   sentReminderTaskIds.push(reminderTask.id)
     //   // })
     //   // .catch(e => {
-    //   //   console.error(e)
+    //   //   logger.error(e)
     //   //   // TODO sentry + log into file
     //   // })
     // }
