@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import config from './lib/config';
 import Bot from './bot/bot';
 import mongoose from 'mongoose';
 import logger from './lib/logger';
@@ -7,7 +7,6 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
-dotenv.config();
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
@@ -17,7 +16,7 @@ dayjs.extend(customParseFormat);
 mongoose.set('useFindAndModify', false);
 mongoose
   // TODO make config file
-  .connect(process.env.MONGODB_LOCAL_URI as string, {
+  .connect(config.MONGODB_URI as string, {
     // TODO remove typescript force
     useNewUrlParser: true,
     useUnifiedTopology: true,

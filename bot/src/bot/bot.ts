@@ -5,6 +5,7 @@ import guildService from '../services/guild-service';
 import taskEventService from '../services/task-event-service';
 import { formatDate, toMilliseconds } from './utils';
 import TaskScheduler from './task-event-scheduler';
+import config from '../lib/config';
 
 export default class Bot {
   static NAME: string = 'TaxBot';
@@ -14,7 +15,7 @@ export default class Bot {
   constructor() {
     this.client = new CommandoClient({
       commandPrefix: 'T$', // TODO figure out how to avoid conflicts with other bots e.g. rhythm bot
-      owner: process.env.DISCORD_OWNER_ID,
+      owner: config.DISCORD_OWNER_ID,
       // presence: TODO do this https://discord.js.org/#/docs/main/stable/typedef/PresenceData
     });
 
@@ -69,7 +70,7 @@ export default class Bot {
   // TODO might need to handle case where this fires before client is ready
   public async start(): Promise<void> {
     logger.info('Starting bot');
-    await this.client.login(process.env.DISCORD_BOT_TOKEN).catch(logger.error);
+    await this.client.login(config.DISCORD_BOT_TOKEN).catch(logger.error);
     logger.info('Logged into Discord successfully');
 
     // schedule tasks on startup (needed in case server dies; node schedule jobs are kept in memory not separate processes)
