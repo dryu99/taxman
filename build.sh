@@ -1,3 +1,5 @@
+# Production build
+
 # Move generated .env file to appropriate dir
 mv .env bot/
 
