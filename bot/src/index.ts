@@ -27,6 +27,6 @@ mongoose
     bot.start();
   })
   .catch((e) => {
-    logger.error(e.message);
+    logger.error('Failed to connect to MongoDB', e.message);
     logger.info('Exiting program...');
   });
