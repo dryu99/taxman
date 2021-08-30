@@ -18,7 +18,8 @@ jobs:
           echo API_ENDPOINT="https://xxx.execute-api.us-west-2.amazonaws.com" >> .env
           echo PORT=${{ secrets.PORT }} >> .env
           cat .env
-
+      - name: ls
+        run: ls
       - name: Copy repository contents via scp
         uses: appleboy/scp-action@master
         env:
