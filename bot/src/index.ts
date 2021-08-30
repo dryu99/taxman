@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import Bot from './bot/Bot';
+import Bot from './bot/bot';
 import mongoose from 'mongoose';
 import logger from './lib/logger';
 import dayjs from 'dayjs';
