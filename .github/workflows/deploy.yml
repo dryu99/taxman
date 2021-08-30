@@ -21,7 +21,7 @@ jobs:
           KEY: ${{ secrets.SSHKEY }}
         with:
           source: "."
-          target: "test"
+          target: "taxbot"
 
       - name: Executing remote command
         uses: appleboy/ssh-action@master
@@ -30,4 +30,4 @@ jobs:
           USERNAME: ${{ secrets.USERNAME }}
           PORT: ${{ secrets.PORT }}
           KEY: ${{ secrets.SSHKEY }}
-          script: ls
+          script: cd taxbot && ./build.sh

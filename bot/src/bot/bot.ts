@@ -31,7 +31,7 @@ export default class Bot {
 
     // register event handlers
     this.client.on('ready', async () => {
-      logger.info(
+      logger.dev(
         `Logged in as ${this.client.user?.tag}! (${this.client.user?.id})`,
       );
 
@@ -68,7 +68,9 @@ export default class Bot {
 
   // TODO might need to handle case where this fires before client is ready
   public async start(): Promise<void> {
+    logger.info('Starting bot');
     await this.client.login(process.env.DISCORD_BOT_TOKEN).catch(logger.error);
+    logger.info('Logged into Discord successfully');
 
     // schedule tasks on startup (needed in case server dies; node schedule jobs are kept in memory not separate processes)
     this.scheduleTaskEvents();
@@ -83,13 +85,13 @@ export default class Bot {
   }
 
   private async scheduleTaskEvents(): Promise<void> {
-    logger.info(`[BOT] Scheduling tasks (${new Date().toLocaleTimeString()})`);
+    logger.dev(`[BOT] Scheduling tasks (${new Date().toLocaleTimeString()})`);
 
     // TODO could do some kind of check to see if nodeSchedule.scheudleJobs.length > 0 (it should be 0)
     // TODO determine if this doesn't work with different timezones
     // TODO consider doing sth similar to reminder tasks where we only update status once msg has been confirmed to have been sent to server (in cases where msg doesn't send). Rn we're actually updating in the getDueTasks method. Only bad thing about that is that if db queries take a long time we could have repeated msgs hmm... (race condition)
     const todayTaskEvents = await taskEventService.getAllByToday();
-    logger.info(
+    logger.dev(
       "  Today's tasks:",
       todayTaskEvents.map((event) => ({
         id: event.id,

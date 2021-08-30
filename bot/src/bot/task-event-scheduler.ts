@@ -19,10 +19,10 @@ const TaskScheduler = (function () {
   //      How does this affect performance? At some point we should benchmark it and see if we should bind() or sth.
   //      We coudl alternatively make a DB call for each scheduled task instead to get meta
   const scheduleOne = (taskEvent: TaskEvent) => {
-    logger.info('Scheduling Task', taskEvent);
+    logger.dev('Scheduling Task', taskEvent);
     nodeSchedule.scheduleJob(taskEvent.id, taskEvent.dueAt, async () => {
       if (!_verifyInit(_client)) return;
-      logger.info('Running scheduled task', taskEvent);
+      logger.dev('Running scheduled task', taskEvent);
 
       // TODO possibly better to fetch schedule here
       let channel: Channel | undefined;

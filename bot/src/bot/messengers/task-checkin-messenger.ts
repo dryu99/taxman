@@ -41,7 +41,7 @@ export default class TaskCheckInMessenger extends Messenger {
   }
 
   public async start() {
-    logger.info('Starting task checkin', this.taskEvent.id);
+    logger.dev('Starting task checkin', this.taskEvent.id);
     while (true) {
       switch (this.state) {
         case MessageState.USER_CONFIRM:
@@ -51,7 +51,7 @@ export default class TaskCheckInMessenger extends Messenger {
           this.state = await this.handlePartnerConfirm();
           break;
         case MessageState.END:
-          logger.info('Ending task checkin', this.taskEvent.id);
+          logger.dev('Ending task checkin', this.taskEvent.id);
           return;
         default:
           logger.error('Unknown state received', this.state);

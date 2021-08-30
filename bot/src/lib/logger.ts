@@ -1,13 +1,16 @@
-// TODO add time stamps to these OR use morgan or sth
-const info = (...params: any[]) => {
+const dev = (...params: any[]) => {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[${new Date().toLocaleTimeString()}] `, ...params);
+    info(params);
   }
 };
 
-const error = (...params: any[]) => {
-  console.error(...params);
+const info = (...params: any[]) => {
+  console.log(`[${new Date().toLocaleTimeString()}] `, ...params);
 };
 
-const logger = { info, error };
+const error = (...params: any[]) => {
+  console.error(`[${new Date().toLocaleTimeString()}] `, ...params);
+};
+
+const logger = { dev, error, info };
 export default logger;
