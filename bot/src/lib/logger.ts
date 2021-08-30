@@ -1,6 +1,6 @@
 const dev = (...params: any[]) => {
   if (process.env.NODE_ENV !== 'production') {
-    info(params);
+    info(...params);
   }
 };
 
