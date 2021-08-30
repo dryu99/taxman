@@ -16,6 +16,7 @@ dayjs.extend(customParseFormat);
 // TODO figure out way to handle messenger try catchs the same way (wrap with a fn? or wrap switch with try catch)
 mongoose.set('useFindAndModify', false);
 mongoose
+  // TODO make config file
   .connect(process.env.MONGODB_LOCAL_URI as string, {
     // TODO remove typescript force
     useNewUrlParser: true,
@@ -27,6 +28,6 @@ mongoose
     bot.start();
   })
   .catch((e) => {
-    logger.error('Failed to connect to MongoDB', e.message);
+    logger.error('Failed to connect to MongoDB:', e.message);
     logger.info('Exiting program...');
   });

@@ -15,13 +15,10 @@ jobs:
       - name: Create env file
         run: |
           touch .env
-          echo API_ENDPOINT="https://xxx.execute-api.us-west-2.amazonaws.com" >> .env
-          echo PORT=${{ secrets.PORT }} >> .env
+          echo DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }} >> .env
+          echo DISCORD_OWNER_ID=${{ secrets.DISCORD_OWNER_ID }} >> .env
+          echo MONGODB_URI=${{ secrets.MONGODB_URI }} >> .env
           cat .env
-          touch test.txt
-          ls
-      - name: ls
-        run: ls
       - name: Copy repository contents via scp
         uses: appleboy/scp-action@master
         env:

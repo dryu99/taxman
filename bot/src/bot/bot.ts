@@ -14,7 +14,7 @@ export default class Bot {
   constructor() {
     this.client = new CommandoClient({
       commandPrefix: 'T$', // TODO figure out how to avoid conflicts with other bots e.g. rhythm bot
-      owner: process.env.OWNER_ID,
+      owner: process.env.DISCORD_OWNER_ID,
       // presence: TODO do this https://discord.js.org/#/docs/main/stable/typedef/PresenceData
     });
 
