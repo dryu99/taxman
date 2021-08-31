@@ -1,4 +1,4 @@
 # Production build
 yarn
 yarn build
-pm2 restart discord-bot
+NODE_ENV=production pm2 restart discord-bot --update-env

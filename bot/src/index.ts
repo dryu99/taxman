@@ -10,7 +10,7 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
-
+console.log('db uri', config.MONGODB_URI);
 // TODO give embeds and msg variables more specific names
 // TODO figure out way to handle messenger try catchs the same way (wrap with a fn? or wrap switch with try catch)
 mongoose.set('useFindAndModify', false);
